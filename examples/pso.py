@@ -134,6 +134,19 @@ def generate_random_coords(min_val, max_val):
 	
 	return coords
 
+def generate_max_min():
+	VarMin = [-6.0 for _ in range(9)]
+	VarMin += [2.0 for _ in range(9)]
+	VarMin += [7 for _ in range(9)]
+	VarMin += [0 for _ in range(6)]
+
+	VarMax = [30.0 for _ in range(9)]
+	VarMax += [14.0 for _ in range(9)]
+	VarMax += [12 for _ in range(9)]
+	VarMax += [2 for _ in range(6)]
+
+	return { 'VarMin':  VarMin, 'VarMax': VarMax }
+
 def init_pos(VarMin, VarMax):
 	SNR_coords = generate_random_coords(VarMin[0], VarMax[0])
 	TP_coords = generate_random_coords(VarMin[9], VarMax[9])
@@ -144,6 +157,35 @@ def init_pos(VarMin, VarMax):
 
 	positions = np.concatenate((SNR_coords, TP_coords, SF_coords, SNR_TP, SNR_SF), axis=0)
 	return positions
+
+def save_fig(filename, BestCosts, title): 
+	path = '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/scratch/pso-fuzzy'
+	x = range(1, len(BestCosts)+1)
+	dpi = 300
+	# Resultados
+	plt.figure()
+	plt.semilogy(x, BestCosts, linewidth=2)
+	plt.xlabel('Iteration')
+	plt.ylabel('Fitness')
+	plt.title(title)
+	plt.grid(True)
+	plt.scatter(x, BestCosts, color='red')
+	for i in range(len(BestCosts)):
+		plt.text(x[i], BestCosts[i], str(round(BestCosts[i], 2)), ha='center', va='bottom')
+	plt.xticks(np.arange(0, len(BestCosts)+1))
+	plt.savefig (f'{path}/semilogy-{filename}', dpi=dpi) # Salvar Gráfico
+
+	plt.figure()
+	plt.plot(x, BestCosts)
+	plt.xlabel('Iteration')
+	plt.ylabel('Fitness')
+	plt.title(title)
+	plt.grid(True)
+	plt.scatter(x, BestCosts, color='red')
+	for i in range(len(BestCosts)):
+		plt.text(x[i], BestCosts[i], str(round(BestCosts[i], 2)), ha='center', va='bottom')
+	plt.xticks(np.arange(0, len(BestCosts)+1))
+	plt.savefig (f'{path}/curve-{filename}', dpi=dpi) # Salvar Gráfico
 
 def apply_lim_vel(velocities, min_val, max_val):
 	size = len(velocities)
@@ -181,18 +223,6 @@ def apply_lim_pos_vars(p, newP, min_val, max_val):
 def apply_lim_pos_rules(p, newP, min_val, max_val):
 	p = max(min_val, newP)
 	p = min(max_val, newP)
-
-def save_fig(filename, BestCosts):
-	# Resultados
-	plt.figure()
-	plt.semilogy(BestCosts, linewidth=2)
-	plt.xlabel('Iteration')
-	plt.ylabel('Best Cost')
-	plt.grid(True)
-	
-	path = '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/scratch/pso-fuzzy'
-	plt.savefig (f'{path}/{filename}') # Salvar Gráfico
-	# plt.show()
 
 def PSO(problem, params):
 	# Extração dos parâmetros do problema e do PSO
@@ -297,19 +327,6 @@ def PSO(problem, params):
 	out = {'pop': particle, 'BestSol': GlobalBest, 'BestCosts': BestCosts}
 	dump(out)
 	return out
-
-def generate_max_min():
-	VarMin = [-6.0 for _ in range(9)]
-	VarMin += [2.0 for _ in range(9)]
-	VarMin += [7 for _ in range(9)]
-	VarMin += [0 for _ in range(6)]
-
-	VarMax = [30.0 for _ in range(9)]
-	VarMax += [14.0 for _ in range(9)]
-	VarMax += [12 for _ in range(9)]
-	VarMax += [2 for _ in range(6)]
-
-	return { 'VarMin':  VarMin, 'VarMax': VarMax }
 
 """
 if __name__ == "__main__":
@@ -440,6 +457,9 @@ def testInitPos(): # Ok
 	coords = init_pos(max_min['VarMin'], max_min['VarMax'])
 	print(coords)
 
+def testSaveFig():
+	save_fig('save-fig-test.png', np.random.uniform(0, 2, 20), 'Best Costs')
+
 if __name__ == '__main__':
 	# testCalcPlr() # Ok
 	# testCalcEnergy() # Ok
@@ -451,5 +471,6 @@ if __name__ == '__main__':
 	# testDump() # Ok
 	# testRestore() # Ok
 	# testGenRndCoords() Ok
-	testMaxMin() # Ok
+	# testMaxMin() # Ok
 	# testInitPos() # Ok
+	testSaveFig() # Ok
