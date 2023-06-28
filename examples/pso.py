@@ -431,6 +431,11 @@ def testGenRndCoords(): # Ok
 	SNR_coords = generate_random_coords(-6, 30)
 	print(SNR_coords)
 
+def testInitPos(): # Ok
+	max_min = generate_max_min()
+	coords = init_pos(max_min['VarMin'], max_min['VarMax'])
+	print(coords)
+
 if __name__ == '__main__':
 	# testCalcPlr() # Ok
 	# testCalcEnergy() # Ok
@@ -442,3 +447,4 @@ if __name__ == '__main__':
 	# testDump() # Ok
 	# testRestore() # Ok
 	# testGenRndCoords() Ok
+	testInitPos() # Ok
