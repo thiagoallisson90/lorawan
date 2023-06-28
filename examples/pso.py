@@ -427,6 +427,10 @@ def testRestore(): #  Ok
 	data = restore(filename='particle-test.txtx')
 	print(data)
 
+def testGenRndCoords(): # Ok
+	SNR_coords = generate_random_coords(-6, 30)
+	print(SNR_coords)
+
 if __name__ == '__main__':
 	# testCalcPlr() # Ok
 	# testCalcEnergy() # Ok
@@ -437,3 +441,4 @@ if __name__ == '__main__':
 	# testAdr() # Ok
 	# testDump() # Ok
 	# testRestore() # Ok
+	# testGenRndCoords() Ok
