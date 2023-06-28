@@ -5,18 +5,17 @@ import numpy as np
 import os 
 import pandas as pd
 import thread6
+import concurrent.futures
 
-@thread6.threaded()
 def calcPlr(particle):
 	files = [
-    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/phyPerformance102FADR1.csv',
-    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/phyPerformance102FADR2.csv',
-    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/phyPerformance102FADR3.csv',
-    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/phyPerformance102FADR4.csv'
+    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/phyPerformance102FADR-1.csv',
+    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/phyPerformance102FADR-2.csv',
+    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/phyPerformance102FADR-3.csv',
+    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/phyPerformance102FADR-4.csv'
 	]
 	particle['PLR'] = sum((1 - pd.read_csv(file)['pdr'].mean()) for file in files) / len(files)
 
-@thread6.threaded()
 def calcEnergy(particle):
 	files = [
     '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/battery-level-component-1.txt',
@@ -25,18 +24,17 @@ def calcEnergy(particle):
     '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/battery-level-component-4.txt'
 	]
 	particle['Energy'] = \
-		sum((10000 - pd.read_csv(file)['energy'].mean()) / 10000 for file in files) / len(files)
+		sum(((10000 - pd.read_csv(file, names=['num', 'energy'])['energy'].mean()) / 10000) for file in files) / len(files)
 
-@thread6.threaded()
 def calc(particle):
-	thread6.run_threaded(calcPlr, { particle })
-	thread6.run_threaded(calcEnergy, { particle })
+	calcPlr(particle)
+	calcEnergy(particle)
 
-def fillFll(position):
-	tp = ['poor', 'acceptable', 'good']
-	df = ['A', 'B', 'C']
+def fillFll(position, fll='fadr.fll'):
+	tp = ['low', 'average', 'high']
+	sf = ['A', 'B', 'C']
 	filename = \
-		f'/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/src/lorawan/examples/fadr.fll'
+		f'/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/src/lorawan/examples/{fll}'
 	with open(filename, 'w') as file:
 		file.write(\
 			'Engine: FADR\n' +
@@ -80,9 +78,9 @@ def fillFll(position):
 			'\tdisjunction: Maximum\n'+
 			'\timplication: AlgebraicProduct\n'+
 			'\tactivation: General\n'+
-			f'\trule: if snr is poor then tp is {int( tp[position[27]] )}\n'+
-			f'\trule: if snr is acceptable then tp is {int( tp[position[28]] )}\n'+
-			f'\trule: if snr is good then tp is {int( tp[position[29]] )}\n'+
+			f'\trule: if snr is poor then tp is {tp[int(position[27])]}\n'+
+			f'\trule: if snr is acceptable then tp is {tp[int(position[28])]}\n'+
+			f'\trule: if snr is good then tp is {tp[int(position[29])]}\n'+
 			'RuleBlock: mamdani\n'+
 			'\tdescription: Mamdani Inference for SF\n'+
 			'\tenabled: true\n'+
@@ -90,22 +88,23 @@ def fillFll(position):
 			'\tdisjunction: Maximum\n'+
 			'\timplication: AlgebraicProduct\n'+
 			'\tactivation: General\n'+
-			f'\trule: if snr is poor then sf is {int( df[position[30]] )}\n'+
-			f'\trule: if snr is acceptable then sf is {int( df[position[31]] )}\n'+
-			f'\trule: if snr is good then sf is {int( df[position[32]] )}\n'
+			f'\trule: if snr is poor then sf is {sf[int(position[30])]}\n'+
+			f'\trule: if snr is acceptable then sf is {sf[int(position[31])]}\n'+
+			f'\trule: if snr is good then sf is {sf[int(position[32])]}\n'
 		)
 
-@thread6.threaded()
-def execute(data):
-	ns3 = './ns3'
-	cmd = f"{ns3} --run \"scenario102  --adrType=ns3::AdrFuzzy --nDevices=136 --intervalTx=15 --nRun={data['run']}\""
+def execute(run):
+	ns3 = '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/./ns3'
+	cmd = f"{ns3} run \"scenario102  --adrType=ns3::AdrFuzzy --nDevices=136 --intervalTx=15 --nRun={run}\""
 	os.system(cmd)
 
-@thread6.threaded()
 def simulate(positions):
-	fillFll(positions)
-	for i in range(1, 5):
-		thread6.run_threaded(execute, { 'run': i } )
+	#fillFll(positions)
+	executor = concurrent.futures.ThreadPoolExecutor()
+	results = [executor.submit(execute, i) for i in range(1, 5)]
+	concurrent.futures.wait(results)
+	executor.shutdown()
+	print('Acabou')
 
 def ADR(particle):
 	particle['Cost'] = particle['PLR'] + particle['Energy']
@@ -141,8 +140,8 @@ def init_pos(VarMin, VarMax):
 	TP_coords = generate_random_coords(VarMin[9], VarMax[9])
 	SF_coords = generate_random_coords(VarMin[19], VarMax[19])
 
-	SNR_TP = np.random.randint(VarMin[27], VarMax[27], 3)
-	SNR_SF = np.random.randint(VarMin[30], VarMax[30], 3)
+	SNR_TP = np.random.randint(VarMin[27], VarMax[27]+1, 3)
+	SNR_SF = np.random.randint(VarMin[30], VarMax[30]+1, 3)
 
 	positions = np.concatenate((SNR_coords, TP_coords, SF_coords, SNR_TP, SNR_SF), axis=0)
 	return positions
@@ -307,12 +306,13 @@ def generate_max_min():
 	VarMin += [0 for _ in range(6)]
 
 	VarMax = [30.0 for _ in range(9)]
-	VarMax = [14.0 for _ in range(9)]
-	VarMax = [12 for _ in range(9)]
-	VarMax = [2 for _ in range(6)]
+	VarMax += [14.0 for _ in range(9)]
+	VarMax += [12 for _ in range(9)]
+	VarMax += [2 for _ in range(6)]
 
 	return { 'VarMin':  VarMin, 'VarMax': VarMax }
 
+"""
 if __name__ == "__main__":
 	max_min = generate_max_min()
 
@@ -341,5 +341,65 @@ if __name__ == "__main__":
 
 	dump(BestSol, 'best-sol-final.json')
 	save_fig('pso-fuzzy-final.png', BestCosts)
+"""
 
-## Testar
+## Testes Unitário
+def testCalcPlr(): # Ok
+	particle = {'Position': np.random.uniform(-6, 30, 33),
+		'Velocity': np.zeros(33),
+		'Cost': None,
+		'Best': {'Position': None, 'Cost': np.inf},
+		'PLR': np.inf,
+		'Energy': np.inf}
+	
+	calcPlr(particle)
+	print(particle['PLR'])
+
+def testCalcEnergy(): # Ok
+	particle = {'Position': np.random.uniform(0, 10, 33),
+		'Velocity': np.zeros(33),
+		'Cost': None,
+		'Best': {'Position': None, 'Cost': np.inf},
+		'PLR': np.inf,
+		'Energy': np.inf}
+	
+	calcEnergy(particle)
+	print(particle['Energy'])
+
+def testCalc(): # Ok
+	particle = {'Position': np.random.uniform(0, 10, 33),
+		'Velocity': np.zeros(33),
+		'Cost': None,
+		'Best': {'Position': None, 'Cost': np.inf},
+		'PLR': np.inf,
+		'Energy': np.inf}
+	
+	calc(particle)
+	print(particle['PLR'], particle['Energy'])
+
+def testFill(): # Ok
+	pos = np.concatenate([np.random.uniform(-6, 30, 27), np.random.randint(0, 3, 6)], axis=0)
+	particle = {'Position': pos,
+		'Velocity': np.zeros(33),
+		'Cost': None,
+		'Best': {'Position': None, 'Cost': np.inf},
+		'PLR': np.inf,
+		'Energy': np.inf}
+	fillFll(particle['Position'], fll='fadr01.fll')
+
+def testExecute():
+	executor = concurrent.futures.ThreadPoolExecutor()
+	executor.submit(execute, 1)
+	executor.shutdown(wait=True)
+
+def testSimulate():
+	pos = np.concatenate([np.random.uniform(-6, 30, 27), np.random.randint(0, 3, 6)], axis=0)
+	simulate(pos)
+
+if __name__ == '__main__':
+	# testCalcPlr() # Ok
+	# testCalcEnergy() # Ok
+	# testCalc() # Ok
+	# testFill() # Ok
+	# testExecute() # Ok
+	testSimulate()
