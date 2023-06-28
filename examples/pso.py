@@ -207,6 +207,15 @@ def apply_lim_vel(velocities, min_val, max_val):
 		if velocities[i] > max_val[i]:
 			velocities[i] = max_val[i]
 
+def apply_lim_pos_rules(p, newP, min_val, max_val):
+	for i in range(len(newP)):
+		if newP[i] < min_val[i]:
+			newP[i] = min_val[i] 
+		if newP[i] > max_val[i]:
+			newP[i] = max_val[i]
+		
+		p[i] = newP[i]
+
 def apply_lim_pos_vars(p, newP, min_val, max_val):
 	p[0] = min_val
 	p[8] = max_val
@@ -231,10 +240,6 @@ def apply_lim_pos_vars(p, newP, min_val, max_val):
 
 	p[7] = max(p[6], newP)
 	p[7] = max(max_val, newP)
-
-def apply_lim_pos_rules(p, newP, min_val, max_val):
-	p = max(min_val, newP)
-	p = min(max_val, newP)
 
 def PSO(problem, params):
 	# Extração dos parâmetros do problema e do PSO
@@ -479,6 +484,16 @@ def testLimVel(): # Ok
 	apply_lim_vel(velocity, MinVel, MaxVel)
 	print(f'velocidade final = {velocity}')
 
+def testLimPosRules(): # Ok
+	p = np.random.randint(0,3,6)
+	print(p)
+	newP = np.array([2, 0, 2, 2, 1, 0]) 
+	apply_lim_pos_rules(p, newP, np.array([0, 0, 0, 0, 0, 0]), np.array([2, 2, 2, 2, 2, 2]))
+	print(p)
+
+def testLimPosVars():
+	pass
+
 if __name__ == '__main__':
 	# testCalcPlr() # Ok
 	# testCalcEnergy() # Ok
@@ -494,3 +509,5 @@ if __name__ == '__main__':
 	# testInitPos() # Ok
 	# testSaveFig() # Ok
 	# testLimVel() # Ok
+	# testLimPosRules() # Ok
+	testLimPosVars()
