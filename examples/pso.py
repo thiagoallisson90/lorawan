@@ -108,13 +108,13 @@ def simulate(positions):
 def ADR(particle):
 	particle['Cost'] = particle['PLR'] + particle['Energy']
 
-def dump(pso, filename='pso.json'):
+def dump(pso, filename='pso.txt'):
 	with open(f'/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/scratch/pso-fuzzy/{filename}', 'w') as file:
-		file.write(json.dump(pso))
+		file.write(str(pso))
 
-def restore():
-	with open('/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/scratch/pso-fuzzy/pso.json', 'r') as file:
-		return json.load(file.read()) 
+def restore(filename='pso.txt'):
+	with open(f'/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/scratch/pso-fuzzy/{filename}', 'r') as file:
+		return file.read()
 
 def generate_random_coords(min_val, max_val):
 	coords = np.zeros(9)
@@ -408,6 +408,25 @@ def testAdr(): # Ok
 	ADR(particle)
 	print(particle['Cost'])
 
+def testDump(): # Ok
+	particle = {'Position': np.random.uniform(0, 10, 33),
+		'Velocity': np.zeros(33),
+		'Cost': None,
+		'Best': {'Position': None, 'Cost': np.inf},
+		'PLR': np.inf,
+		'Energy': np.inf}
+
+	calc(particle)
+	print(particle['PLR'], particle['Energy'])
+	ADR(particle)
+	print(particle['Cost'])
+
+	dump(particle, 'particle-test.txt')
+
+def testRestore(): #  Ok
+	data = restore(filename='particle-test.txtx')
+	print(data)
+
 if __name__ == '__main__':
 	# testCalcPlr() # Ok
 	# testCalcEnergy() # Ok
@@ -416,3 +435,5 @@ if __name__ == '__main__':
 	# testExecute() # Ok
 	# testSimulate() # Ok
 	# testAdr() # Ok
+	# testDump() # Ok
+	# testRestore() # Ok
