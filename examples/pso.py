@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os 
 import pandas as pd
-import thread6
 import concurrent.futures
 
 def calcPlr(particle):
