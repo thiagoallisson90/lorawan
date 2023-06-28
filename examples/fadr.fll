@@ -1,0 +1,54 @@
+Engine: FADR
+	description: An Engine for ADR LoRaWAN
+InputVariable: snr
+	description: Signal Noise Ratio
+	enabled: true
+	range: -8.0  28.0
+	lock-range: true
+	term: poor       Triangle   -8.0  -8.0  10.0 
+	term: acceptable Triangle   -4.0  10.0  24.0 
+	term: good       Triangle   10.0  28.0  28.0
+OutputVariable: sf
+	description: SF based on Mamdani inference
+	enabled: true
+	range:   7  12
+	lock-range: false
+	aggregation: Maximum
+	defuzzifier: Centroid 10
+	default: nan
+	lock-previous: false
+	term:  A    Triangle  7.0  7.0 12.0   
+	term:  B    Triangle  7.0  9.5 12.0
+	term:  C    Triangle  7.0 12.0 12.0
+OutputVariable: tp
+	description: TP based on Mamdani inference
+	enabled: true
+	range:   2  14
+	lock-range: false
+	aggregation: Maximum
+	defuzzifier: Centroid 10
+	default: nan
+	lock-previous: false
+	term:  low      Triangle  2.0  2.0  8.0   
+	term:  average  Triangle  4.0  8.0 12.0
+	term:  high     Triangle  8.0 14.0 14.0
+RuleBlock: mamdani
+	description: Mamdani Inference for SF
+	enabled: true
+	conjunction: Minimum
+	disjunction: Maximum
+	implication: AlgebraicProduct
+	activation: General
+	rule: if snr is poor then sf is C
+	rule: if snr is acceptable then sf is B
+	rule: if snr is good then sf is A
+RuleBlock: mamdani
+	description: Mamdani Inference for TP
+	enabled: true
+	conjunction: Minimum
+	disjunction: Maximum
+	implication: AlgebraicProduct
+	activation: General
+	rule: if snr is poor then tp is high
+	rule: if snr is acceptable then tp is average
+	rule: if snr is good then tp is low
