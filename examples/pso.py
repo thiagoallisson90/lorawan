@@ -1,10 +1,10 @@
 #!/usr/bin/python
-import json
+import asyncio
+import concurrent.futures
 import matplotlib.pyplot as plt
 import numpy as np
 import os 
 import pandas as pd
-import concurrent.futures
 
 def calcPlr(particle):
 	files = [
@@ -26,8 +26,10 @@ def calcEnergy(particle):
 		sum(((10000 - pd.read_csv(file, names=['num', 'energy'])['energy'].mean()) / 10000) for file in files) / len(files)
 
 def calc(particle):
-	calcPlr(particle)
-	calcEnergy(particle)
+	executor = concurrent.futures.ThreadPoolExecutor()
+	results = [executor.submit(calcPlr, particle), executor.submit(calcEnergy, particle)]
+	concurrent.futures.wait(results)
+	executor.shutdown()
 
 def fillFll(position, fll='fadr.fll'):
 	tp = ['low', 'average', 'high']
@@ -157,11 +159,11 @@ def init_pos(VarMin, VarMax):
 	positions = np.concatenate((SNR_coords, TP_coords, SF_coords, SNR_TP, SNR_SF), axis=0)
 	return positions
 
-def save_fig(filename, BestCosts, title): 
+def save_fig_curve(filename, BestCosts, title):
 	path = '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/scratch/pso-fuzzy'
 	x = range(1, len(BestCosts)+1)
 	dpi = 300
-	# Resultados
+
 	plt.figure()
 	plt.semilogy(x, BestCosts, linewidth=2)
 	plt.xlabel('Iteration')
@@ -174,6 +176,11 @@ def save_fig(filename, BestCosts, title):
 	plt.xticks(np.arange(0, len(BestCosts)+1))
 	plt.savefig (f'{path}/semilogy-{filename}', dpi=dpi) # Salvar Gráfico
 
+def save_fig_semilogy(filename, BestCosts, title):
+	path = '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/scratch/pso-fuzzy'
+	x = range(1, len(BestCosts)+1)
+	dpi = 300
+
 	plt.figure()
 	plt.plot(x, BestCosts)
 	plt.xlabel('Iteration')
@@ -185,6 +192,13 @@ def save_fig(filename, BestCosts, title):
 		plt.text(x[i], BestCosts[i], str(round(BestCosts[i], 2)), ha='center', va='bottom')
 	plt.xticks(np.arange(0, len(BestCosts)+1))
 	plt.savefig (f'{path}/curve-{filename}', dpi=dpi) # Salvar Gráfico
+
+def save_fig(filename, BestCosts, title): 
+	executor = concurrent.futures.ThreadPoolExecutor()
+	results = [executor.submit(save_fig_curve(filename, BestCosts, title)),
+						 executor.submit(save_fig_semilogy(filename, BestCosts, title))]
+	concurrent.futures.wait(results)
+	executor.shutdown()
 
 def apply_lim_vel(velocities, min_val, max_val):
 	size = len(velocities)
@@ -268,7 +282,7 @@ def PSO(problem, params):
 		if particle[i]['Best']['Cost'] < GlobalBest['Cost']:
 			GlobalBest = particle[i]['Best']
 
-		save_fig('pso-fuzzy0.png')
+		save_fig('pso-fuzzy0.png') # ToDo assíncrono
 
 	# Loop principal
 	for it in range(MaxIt):
@@ -277,7 +291,8 @@ def PSO(problem, params):
 
 		if it % 10 == 0:
 			out = {'pop': particle, 'BestSol': GlobalBest, 'BestCosts': BestCosts}
-			dump(out)
+			dump(out) # ToDo Assíncrono
+			save_fig('pso-fuzzy0.png') # ToDo Assíncrono
 		
 		for i in range(nPop):
 			# Atualizar velocidade
@@ -456,8 +471,11 @@ def testInitPos(): # Ok
 	coords = init_pos(max_min['VarMin'], max_min['VarMax'])
 	print(coords)
 
-def testSaveFig():
-	save_fig('save-fig-test.png', np.random.uniform(0, 2, 20), 'Best Costs')
+def testSaveFig(): # Ok
+	save_fig('pso-test', np.random.uniform(0, 2, 20), 'Best Costs')
+
+def testLimVel():
+	pass
 
 if __name__ == '__main__':
 	# testCalcPlr() # Ok
@@ -472,4 +490,5 @@ if __name__ == '__main__':
 	# testGenRndCoords() Ok
 	# testMaxMin() # Ok
 	# testInitPos() # Ok
-	testSaveFig() # Ok
+	# testSaveFig() # Ok
+	#testLimVel()
