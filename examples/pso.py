@@ -99,12 +99,11 @@ def execute(run):
 	os.system(cmd)
 
 def simulate(positions):
-	#fillFll(positions)
+	fillFll(positions)
 	executor = concurrent.futures.ThreadPoolExecutor()
 	results = [executor.submit(execute, i) for i in range(1, 5)]
 	concurrent.futures.wait(results)
 	executor.shutdown()
-	print('Acabou')
 
 def ADR(particle):
 	particle['Cost'] = particle['PLR'] + particle['Energy']
@@ -387,14 +386,27 @@ def testFill(): # Ok
 		'Energy': np.inf}
 	fillFll(particle['Position'], fll='fadr01.fll')
 
-def testExecute():
+def testExecute(): # Ok
 	executor = concurrent.futures.ThreadPoolExecutor()
 	executor.submit(execute, 1)
 	executor.shutdown(wait=True)
 
-def testSimulate():
+def testSimulate(): # Ok
 	pos = np.concatenate([np.random.uniform(-6, 30, 27), np.random.randint(0, 3, 6)], axis=0)
 	simulate(pos)
+
+def testAdr(): # Ok
+	particle = {'Position': np.random.uniform(0, 10, 33),
+		'Velocity': np.zeros(33),
+		'Cost': None,
+		'Best': {'Position': None, 'Cost': np.inf},
+		'PLR': np.inf,
+		'Energy': np.inf}
+	
+	calc(particle)
+	print(particle['PLR'], particle['Energy'])
+	ADR(particle)
+	print(particle['Cost'])
 
 if __name__ == '__main__':
 	# testCalcPlr() # Ok
@@ -402,4 +414,5 @@ if __name__ == '__main__':
 	# testCalc() # Ok
 	# testFill() # Ok
 	# testExecute() # Ok
-	testSimulate()
+	# testSimulate() # Ok
+	# testAdr() # Ok
