@@ -29,6 +29,7 @@ def calc(particle):
 	results = [executor.submit(calcPlr, particle), executor.submit(calcEnergy, particle)]
 	concurrent.futures.wait(results)
 	executor.shutdown()
+	print(particle['PLR'], particle['Energy'])
 
 def fillFll(position, fll='fadr.fll'):
 	tp = ['low', 'average', 'high']
@@ -241,7 +242,7 @@ def PSO(problem, params):
 	c2 = params['c2']
 	ShowIterInfo = params['ShowIterInfo']
 	
-	MaxVel = 0.2 * (VarMax - VarMin)
+	MaxVel = 0.05 * (VarMax - VarMin)
 	MinVel = -MaxVel
 	
 	# Inicialização
@@ -338,7 +339,7 @@ if __name__ == "__main__":
 
 	params = {
 		'MaxIt': 100, 
-		'nPop': 200, 
+		'nPop': 50, 
 		'w': 0.7298, 
 		'wdamp': 1, 
 		'c1': 1.4962, 
