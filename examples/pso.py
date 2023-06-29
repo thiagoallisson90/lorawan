@@ -217,29 +217,14 @@ def apply_lim_pos_rules(p, newP, min_val, max_val):
 		p[i] = newP[i]
 
 def apply_lim_pos_vars(p, newP, min_val, max_val):
-	p[0] = min_val
-	p[8] = max_val
+	newP[0] = min_val
+	newP[8] = max_val
+	
+	for i in range(1, len(newP)-1):
+		newP[i] = max(min_val, newP[i] * np.random.rand())
+		newP[i] = min(max_val, newP[i] * np.random.rand())
 
-	p[1] = max(min_val, newP)
-	p[1] = min(p[2], newP) 
-
-	p[2] = max(p[1], newP)
-	p[2] = min(max_val, newP)
-
-	p[3] = max(min_val, newP)
-	p[3] = min(p[4], newP)
-
-	p[4] = max(p[3], newP)
-	p[4] = min(p[5], newP)
-
-	p[5] = max(p[4], newP)
-	p[5] = min(max_val, newP)
-
-	p[6] = max(min_val, newP)
-	p[6] = max(p[7], newP)
-
-	p[7] = max(p[6], newP)
-	p[7] = max(max_val, newP)
+	p = newP
 
 def PSO(problem, params):
 	# Extração dos parâmetros do problema e do PSO
@@ -271,7 +256,7 @@ def PSO(problem, params):
 									 'Best': {'Position': None, 'Cost': np.inf},
 									 'PLR': np.inf,
 									 'Energy': np.inf}
-
+		
 		# Avaliar partícula
 		simulate(particle[i]['Position'])
 		calc(particle[i])
@@ -341,7 +326,6 @@ def PSO(problem, params):
 	save_fig(f'pso-fuzzy{MaxIt}.png', out['BestCosts'], 'Best Costs')
 	return out
 
-"""
 if __name__ == "__main__":
 	max_min = generate_max_min()
 
@@ -370,8 +354,9 @@ if __name__ == "__main__":
 
 	dump(BestSol, 'best-sol-final.json')
 	save_fig('pso-fuzzy-final.png', BestCosts)
-"""
 
+
+"""
 ## Testes Unitário
 def testCalcPlr(): # Ok
 	particle = {'Position': np.random.uniform(-6, 30, 33),
@@ -491,8 +476,18 @@ def testLimPosRules(): # Ok
 	apply_lim_pos_rules(p, newP, np.array([0, 0, 0, 0, 0, 0]), np.array([2, 2, 2, 2, 2, 2]))
 	print(p)
 
-def testLimPosVars():
-	pass
+def testLimPosVars(): # Ok
+	max_min = generate_max_min()
+	coords = init_pos(max_min['VarMin'], max_min['VarMax'])
+	print(coords[0:27])
+	
+	newCoords = coords[0:27] + 5
+	print(newCoords)
+
+	apply_lim_pos_vars(coords[0:9], newCoords[0:9], max_min['VarMin'][0], max_min['VarMax'][0])
+	apply_lim_pos_vars(coords[9:18], newCoords[9:18], max_min['VarMin'][9], max_min['VarMax'][9])
+	apply_lim_pos_vars(coords[18:27], newCoords[18:27], max_min['VarMin'][18], max_min['VarMax'][18])
+	print(coords[18:27])
 
 if __name__ == '__main__':
 	# testCalcPlr() # Ok
@@ -510,4 +505,5 @@ if __name__ == '__main__':
 	# testSaveFig() # Ok
 	# testLimVel() # Ok
 	# testLimPosRules() # Ok
-	testLimPosVars()
+	# testLimPosVars() # Ok
+"""

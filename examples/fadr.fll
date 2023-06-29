@@ -3,23 +3,11 @@ Engine: FADR
 InputVariable: snr
 	description: Signal Noise Ratio
 	enabled: true
-	range: -8.0  28.0
+	range: -4.0  30.0
 	lock-range: true
-	term: poor       Triangle   -8.0  -8.0  10.0 
-	term: acceptable Triangle   -4.0  10.0  24.0 
-	term: good       Triangle   10.0  28.0  28.0
-OutputVariable: sf
-	description: SF based on Mamdani inference
-	enabled: true
-	range:   7  12
-	lock-range: false
-	aggregation: Maximum
-	defuzzifier: Centroid 10
-	default: nan
-	lock-previous: false
-	term:  A    Triangle  7.0  7.0 12.0   
-	term:  B    Triangle  7.0  9.5 12.0
-	term:  C    Triangle  7.0 12.0 12.0
+	term: poor       Triangle -6.0 -3.9506814097373266 20.527501228599785
+	term: acceptable Triangle 7.263750614299893 11.398449575176315 27.16082890735352
+	term: good       Triangle 17.212289760826707 26.511328488693906 30.0
 OutputVariable: tp
 	description: TP based on Mamdani inference
 	enabled: true
@@ -29,19 +17,21 @@ OutputVariable: tp
 	defuzzifier: Centroid 10
 	default: nan
 	lock-previous: false
-	term:  low      Triangle  2.0  2.0  8.0   
-	term:  average  Triangle  4.0  8.0 12.0
-	term:  high     Triangle  8.0 14.0 14.0
-RuleBlock: mamdani
-	description: Mamdani Inference for SF
+	term:  low      Triangle  2.0  6.414772523462175 13.409304854698343
+	term:  average  Triangle  7.704652427349171 8.289473064693507 11.032492009190086
+	term:  high     Triangle  9.368572218269628 12.688214184903577 14.0
+OutputVariable: sf
+	description: SF based on Mamdani inference
 	enabled: true
-	conjunction: Minimum
-	disjunction: Maximum
-	implication: AlgebraicProduct
-	activation: General
-	rule: if snr is poor then sf is C
-	rule: if snr is acceptable then sf is B
-	rule: if snr is good then sf is A
+	range: 7  12
+	lock-range: false
+	aggregation: Maximum
+	defuzzifier: Centroid 10
+	default: nan
+	lock-previous: false
+	term:  A    Triangle  7.0 10.195685124912378 10.954389864651702
+	term:  B    Triangle  8.977194932325851 10.918716477060304 11.353602575027557
+	term:  C    Triangle  10.165398753676705 10.354282067686107 12.0
 RuleBlock: mamdani
 	description: Mamdani Inference for TP
 	enabled: true
@@ -49,6 +39,16 @@ RuleBlock: mamdani
 	disjunction: Maximum
 	implication: AlgebraicProduct
 	activation: General
-	rule: if snr is poor then tp is high
-	rule: if snr is acceptable then tp is average
-	rule: if snr is good then tp is low
+	rule: if snr is poor then tp is average
+	rule: if snr is acceptable then tp is low
+	rule: if snr is good then tp is high
+RuleBlock: mamdani
+	description: Mamdani Inference for SF
+	enabled: true
+	conjunction: Minimum
+	disjunction: Maximum
+	implication: AlgebraicProduct
+	activation: General
+	rule: if snr is poor then sf is B
+	rule: if snr is acceptable then sf is A
+	rule: if snr is good then sf is A
