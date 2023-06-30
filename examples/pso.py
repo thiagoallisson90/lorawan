@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import concurrent.futures
 import matplotlib.pyplot as plt
 import numpy as np
@@ -99,6 +98,12 @@ def execute(run):
 	cmd = f"{ns3} run \"scenario102  --adrType=ns3::AdrFuzzy --nDevices=136 --intervalTx=15 --nRun={run}\""
 	os.system(cmd)
 
+def compile_now():
+	ns3 = '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/./ns3'
+	cmd = f"{ns3} configure -d optimized --enable-tests --enable-examples --enable-mpi"
+	os.system(cmd)
+	os.system(ns3)
+
 def simulate(positions):
 	fillFll(positions)
 	executor = concurrent.futures.ThreadPoolExecutor()
@@ -194,11 +199,15 @@ def save_fig_semilogy(filename, BestCosts, title):
 	plt.savefig (f'{path}/curve-{filename}') # Salvar Gráfico
 
 def save_fig(filename, BestCosts, title): 
+	"""
 	executor = concurrent.futures.ThreadPoolExecutor()
 	results = [executor.submit(save_fig_curve(filename, BestCosts, title)),
 						 executor.submit(save_fig_semilogy(filename, BestCosts, title))]
 	concurrent.futures.wait(results)
 	executor.shutdown()
+	"""
+	save_fig_curve(filename, BestCosts, title)
+	save_fig_semilogy(filename, BestCosts, title)
 
 def apply_lim_vel(velocities, min_val, max_val):
 	size = len(velocities)
@@ -215,7 +224,7 @@ def apply_lim_pos_rules(p, newP, min_val, max_val):
 		if newP[i] > max_val[i]:
 			newP[i] = max_val[i]
 		
-		p[i] = newP[i]
+		p[i] = round(newP[i])
 
 def apply_lim_pos_vars(newP, min_val, max_val):
 	newP[0] = min_val
@@ -247,16 +256,17 @@ def PSO(problem, params):
 	
 	# Inicialização
 	particle = np.empty(nPop, dtype=object)
-	GlobalBest = {'Position': None, 'Cost': np.inf}
+	GlobalBest = {'Position': None, 'Cost': 99999999}
 	BestCosts = np.zeros(MaxIt)
 	
 	for i in range(nPop):
+		compile_now()
 		particle[i] = {'Position': init_pos(VarMin, VarMax),
 									 'Velocity': np.zeros(nVar),
 									 'Cost': None,
-									 'Best': {'Position': None, 'Cost': np.inf},
-									 'PLR': np.inf,
-									 'Energy': np.inf}
+									 'Best': {'Position': None, 'Cost': 99999999},
+									 'PLR': 1,
+									 'Energy': 1}
 		
 		# Avaliar partícula
 		simulate(particle[i]['Position'])
@@ -272,19 +282,12 @@ def PSO(problem, params):
 
 	out = {'pop': particle, 'BestSol': GlobalBest, 'BestCosts': BestCosts}
 	dump({'Iteration': 0, 'Position': GlobalBest['Position'], 'Cost': GlobalBest['Cost']}, 'bests.txt')
-	save_fig('pso-fuzzy-0.png', out['BestCosts'], 'Best Costs')
+	#save_fig('pso-fuzzy-0.png', out['BestCosts'], 'Best Costs')
 
 	# Loop principal
-	for it in range(MaxIt):
-		if GlobalBest['Cost'] == 0:
-			break
-
-		if it % 10 == 0:
-			out = {'pop': particle, 'BestSol': GlobalBest, 'BestCosts': BestCosts}
-			dump(out)
-			save_fig(f'pso-fuzzy-{it}.png', out['BestCosts'], 'Best Costs')
-		
+	for it in range(MaxIt):		
 		for i in range(nPop):
+			compile_now()
 			# Atualizar velocidade
 			particle[i]['Velocity'] = (w * particle[i]['Velocity'] +
 																c1 * np.random.rand(nVar) * (particle[i]['Best']['Position'] - particle[i]['Position']) +
@@ -329,7 +332,7 @@ def PSO(problem, params):
 					
 	out = {'pop': particle, 'BestSol': GlobalBest, 'BestCosts': BestCosts}
 	dump(out)
-	save_fig(f'pso-fuzzy{MaxIt}.png', out['BestCosts'], 'Best Costs')
+	#save_fig(f'pso-fuzzy{MaxIt}.png', out['BestCosts'], 'Best Costs')
 	return out
 
 if __name__ == "__main__":
@@ -358,8 +361,8 @@ if __name__ == "__main__":
 	BestSol = out['BestSol']
 	BestCosts = out['BestCosts']
 
-	dump(BestSol, 'best-sol-final.json')
-	save_fig('pso-fuzzy-final.png', BestCosts)
+	dump(BestSol, 'best-sol-final.txt')
+	save_fig('pso-fuzzy-final.png', BestCosts, 'Bests Costs')
 
 """
 ## Testes Unitário

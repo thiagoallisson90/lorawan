@@ -381,7 +381,8 @@ int main (int argc, char *argv[])
   std::string animFile = "anim" + std::to_string (nRun) + ".xml";
 
   // Start simulation
-  Time simulationTime = Seconds (12 * 24 * 60 * 60);
+  // Time simulationTime = Seconds (12 * 24 * 60 * 60);
+  Time simulationTime = Seconds (2 * 24 * 60 * 60);
   Simulator::Stop (simulationTime);
   Simulator::Run ();
   Simulator::Destroy ();
