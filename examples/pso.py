@@ -26,8 +26,8 @@ def calcEnergy(particle):
 
 def calc(particle):
 	executor = concurrent.futures.ThreadPoolExecutor()
-	#results = [executor.submit(calcPlr, particle), executor.submit(calcEnergy, particle)]
-	results = [executor.submit(calcPlr, particle)]
+	results = [executor.submit(calcPlr, particle), executor.submit(calcEnergy, particle)]
+	# results = [executor.submit(calcPlr, particle)]
 	concurrent.futures.wait(results)
 	executor.shutdown()
 	print(f'PLR = {particle["PLR"]}, Energy = {particle["Energy"]}')
