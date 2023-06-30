@@ -271,7 +271,7 @@ def PSO(problem, params):
 			GlobalBest = particle[i]['Best']
 
 	out = {'pop': particle, 'BestSol': GlobalBest, 'BestCosts': BestCosts}
-	dump(out)
+	dump({'Iteration': 0, 'Position': GlobalBest['Position'], 'Cost': GlobalBest['Cost']}, 'bests.txt')
 	save_fig('pso-fuzzy-0.png', out['BestCosts'], 'Best Costs')
 
 	# Loop principal
@@ -300,7 +300,7 @@ def PSO(problem, params):
 			particle[i]['Position'][9:18] = apply_lim_pos_vars(newPositions[9:18], VarMin[9], VarMax[9]) # TP
 			particle[i]['Position'][18:27] = apply_lim_pos_vars(newPositions[18:27], VarMin[18], VarMax[9]) # SF
 
-			apply_lim_pos_rules(particle[i]['Positions'][27:33], newPositions[27:33], VarMin[27:33], VarMax[27:33])	# rules		
+			apply_lim_pos_rules(particle[i]['Position'][27:33], newPositions[27:33], VarMin[27:33], VarMax[27:33])	# rules		
 			# *****************************************************************************************************************
 
 			# Avaliar partícula
@@ -323,6 +323,9 @@ def PSO(problem, params):
 			
 		if ShowIterInfo:
 			print(f'Iteration {it + 1}: Best Cost = {BestCosts[it]}')
+			print(f'GlobalBest -> Position: {GlobalBest["Position"]}, Cost: {GlobalBest["Cost"]}')
+		
+		dump({'Iteration': (it+1), 'Position': GlobalBest['Position'], 'Cost': GlobalBest['Cost']}, 'bests.txt')
 					
 	out = {'pop': particle, 'BestSol': GlobalBest, 'BestCosts': BestCosts}
 	dump(out)
