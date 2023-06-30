@@ -16,10 +16,10 @@ def calcPlr(particle):
 
 def calcEnergy(particle):
 	files = [
-    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/battery-level-component-1.txt',
-    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/battery-level-component-2.txt',
-    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/battery-level-component-3.txt',
-    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/battery-level-component-4.txt'
+    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/battery-level-fuzzy-1.txt',
+    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/battery-level-fuzzy-2.txt',
+    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/battery-level-fuzzy-3.txt',
+    '/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/battery-level-fuzzy-4.txt'
 	]
 	particle['Energy'] = \
 		sum(((10000 - pd.read_csv(file, names=['num', 'energy'])['energy'].mean()) / 10000) for file in files) / len(files)
@@ -27,7 +27,6 @@ def calcEnergy(particle):
 def calc(particle):
 	executor = concurrent.futures.ThreadPoolExecutor()
 	results = [executor.submit(calcPlr, particle), executor.submit(calcEnergy, particle)]
-	# results = [executor.submit(calcPlr, particle)]
 	concurrent.futures.wait(results)
 	executor.shutdown()
 	print(f'PLR = {particle["PLR"]}, Energy = {particle["Energy"]}')
@@ -108,8 +107,7 @@ def simulate(positions):
 	executor.shutdown()
 
 def ADR(particle):
-	#particle['Cost'] = particle['PLR'] + particle['Energy']
-	particle['Cost'] = particle['PLR']
+	particle['Cost'] = particle['PLR'] + particle['Energy']
 
 def dump(pso, filename='pso.txt'):
 	with open(f'/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/scratch/pso-fuzzy/{filename}', 'a') as file:
