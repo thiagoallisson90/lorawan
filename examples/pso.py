@@ -26,10 +26,11 @@ def calcEnergy(particle):
 
 def calc(particle):
 	executor = concurrent.futures.ThreadPoolExecutor()
-	results = [executor.submit(calcPlr, particle), executor.submit(calcEnergy, particle)]
+	#results = [executor.submit(calcPlr, particle), executor.submit(calcEnergy, particle)]
+	results = [executor.submit(calcPlr, particle)]
 	concurrent.futures.wait(results)
 	executor.shutdown()
-	print(particle['PLR'], particle['Energy'])
+	print(f'PLR = {particle["PLR"]}, Energy = {particle["Energy"]}')
 
 def fillFll(position, fll='fadr.fll'):
 	tp = ['low', 'average', 'high']
@@ -107,7 +108,8 @@ def simulate(positions):
 	executor.shutdown()
 
 def ADR(particle):
-	particle['Cost'] = particle['PLR'] + particle['Energy']
+	#particle['Cost'] = particle['PLR'] + particle['Energy']
+	particle['Cost'] = particle['PLR']
 
 def dump(pso, filename='pso.txt'):
 	with open(f'/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/scratch/pso-fuzzy/{filename}', 'a') as file:
@@ -217,15 +219,15 @@ def apply_lim_pos_rules(p, newP, min_val, max_val):
 		
 		p[i] = newP[i]
 
-def apply_lim_pos_vars(p, newP, min_val, max_val):
+def apply_lim_pos_vars(newP, min_val, max_val):
 	newP[0] = min_val
 	newP[8] = max_val
 	
 	for i in range(1, len(newP)-1):
-		newP[i] = max(min_val, newP[i] * np.random.rand())
-		newP[i] = min(max_val, newP[i] * np.random.rand())
+		newP[i] = max(min_val, newP[i])
+		newP[i] = min(max_val, newP[i])
 
-	p = newP
+	return newP
 
 def PSO(problem, params):
 	# Extração dos parâmetros do problema e do PSO
@@ -271,6 +273,8 @@ def PSO(problem, params):
 			GlobalBest = particle[i]['Best']
 
 	out = {'pop': particle, 'BestSol': GlobalBest, 'BestCosts': BestCosts}
+	dump(out)
+	save_fig('pso-fuzzy-0.png', out['BestCosts'], 'Best Costs')
 
 	# Loop principal
 	for it in range(MaxIt):
@@ -288,15 +292,15 @@ def PSO(problem, params):
 																c1 * np.random.rand(nVar) * (particle[i]['Best']['Position'] - particle[i]['Position']) +
 																c2 * np.random.rand(nVar) * (GlobalBest['Position'] - particle[i]['Position']))
 
-			apply_lim_vel(particle[i]['Velocities'], MinVel, MaxVel)
+			apply_lim_vel(particle[i]['Velocity'], MinVel, MaxVel)
 			# *****************************************************************************************************************
 
 			# Atualizar posições
 			newPositions = particle[i]['Position'] + particle[i]['Velocity']
 			
-			apply_lim_pos_vars(particle[i]['Position'][0:9], newPositions[0:9], VarMin[0], VarMax[0]) # SNR
-			apply_lim_pos_vars(particle[i]['Position'][9:18], newPositions[9:18], VarMin[9], VarMax[9]) # TP
-			apply_lim_pos_vars(particle[i]['Position'][18:27], newPositions[18:27], VarMin[18], VarMax[9]) # SF
+			particle[i]['Position'][0:9] = apply_lim_pos_vars(newPositions[0:9], VarMin[0], VarMax[0]) # SNR
+			particle[i]['Position'][9:18] = apply_lim_pos_vars(newPositions[9:18], VarMin[9], VarMax[9]) # TP
+			particle[i]['Position'][18:27] = apply_lim_pos_vars(newPositions[18:27], VarMin[18], VarMax[9]) # SF
 
 			apply_lim_pos_rules(particle[i]['Positions'][27:33], newPositions[27:33], VarMin[27:33], VarMax[27:33])	# rules		
 			# *****************************************************************************************************************
@@ -355,7 +359,6 @@ if __name__ == "__main__":
 
 	dump(BestSol, 'best-sol-final.json')
 	save_fig('pso-fuzzy-final.png', BestCosts)
-
 
 """
 ## Testes Unitário
@@ -479,16 +482,27 @@ def testLimPosRules(): # Ok
 
 def testLimPosVars(): # Ok
 	max_min = generate_max_min()
-	coords = init_pos(max_min['VarMin'], max_min['VarMax'])
+	print(f"Init = {init_pos(max_min['VarMin'], max_min['VarMax'])}")
+	coords = np.array([-6.0,         19.60146994, 23.93294145,  8.96647072, 10.30156362, 27.00438596,
+ 17.98542834, 29.01096477, 30.,          2.,         11.24223859, 12.79118633,
+  7.39559317, 11.11364213, 11.95158836,  9.67359076, 13.1426692,  14.,
+  7.,         11.11252815, 11.17810931,  9.08905466,  9.21595265,  9.44521763,
+  9.26713614, 11.62443063, 12.        ])
 	print(coords[0:27])
 	
 	newCoords = coords[0:27] + 5
 	print(newCoords)
 
-	apply_lim_pos_vars(coords[0:9], newCoords[0:9], max_min['VarMin'][0], max_min['VarMax'][0])
-	apply_lim_pos_vars(coords[9:18], newCoords[9:18], max_min['VarMin'][9], max_min['VarMax'][9])
-	apply_lim_pos_vars(coords[18:27], newCoords[18:27], max_min['VarMin'][18], max_min['VarMax'][18])
+	coords[0:9] = apply_lim_pos_vars(newCoords[0:9], max_min['VarMin'][0], max_min['VarMax'][0])
+	coords[9:18] = apply_lim_pos_vars(newCoords[9:18], max_min['VarMin'][9], max_min['VarMax'][9])
+	coords[18:27] = apply_lim_pos_vars(newCoords[18:27], max_min['VarMin'][18], max_min['VarMax'][18])
 	print(coords[18:27])
+
+def simulate00(): # Ok
+	executor = concurrent.futures.ThreadPoolExecutor()
+	results = [executor.submit(execute, i) for i in range(1, 5)]
+	concurrent.futures.wait(results)
+	executor.shutdown()
 
 if __name__ == '__main__':
 	# testCalcPlr() # Ok
@@ -507,4 +521,6 @@ if __name__ == '__main__':
 	# testLimVel() # Ok
 	# testLimPosRules() # Ok
 	# testLimPosVars() # Ok
+	simulate00()
+	testCalc()
 """

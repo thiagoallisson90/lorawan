@@ -231,9 +231,7 @@ void AdrFuzzy::AdrImplementation (uint8_t *newDataRate,
   //previously received packets
   double margin_SNR = m_SNR - req_SNR;
   
-  ofstream osf (
-    "/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/snr.csv", 
-    fstream::app);
+  ofstream osf ("/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/snr.csv");
   if(osf.is_open ())
     {
       osf << m_SNR << "," << req_SNR << "," << margin_SNR << endl;
