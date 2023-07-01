@@ -134,7 +134,7 @@ int main (int argc, char *argv[])
 
   cmd.Parse (argc, argv);
 
-  RngSeedManager::SetSeed (time (NULL));
+  //RngSeedManager::SetSeed (30);
   RngSeedManager::SetRun (nRun);
 
   // Set the EDs to require Data Rate control from the NS
