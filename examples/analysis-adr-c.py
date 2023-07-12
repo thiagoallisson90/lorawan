@@ -61,17 +61,16 @@ def snr(adr, num_reps = 30):
 	for file in files:
 		data = pd.read_csv(file, names=['snr', 'snr_req', 'snr_margin'])
 		x_s.append(data['snr_margin'].mean())
-		snr_describe = data['snr_margin'].describe()
-		mins.append(snr_describe.min) 
-		maxs.append(snr_describe.max)
-		means.append(snr_describe.mean)
+		mins.append(data['snr_margin'].min()) 
+		maxs.append(data['snr_margin'].max())
+		means.append(data['snr_margin'].mean())
 	
 	adr['SNR'] = np.mean(x_s)
 	adr['SNR_std'] = np.std(x_s)
 	mins.sort()
 	maxs.sort(reverse=True)
 	print(f'Lista de min_snr = {mins}')
-	print(f'Lista de max_snr = {mins}')
+	print(f'Lista de max_snr = {maxs}')
 	print(f'Lista de mean_snr = {means}')
 
 if __name__ == '__main__':
@@ -84,7 +83,7 @@ if __name__ == '__main__':
 		'SNR': -np.inf,
 		'SNR_std': 0
 	}
-	num_reps = 120
+	num_reps = 4
 	simulate(adr,num_reps)
 	calc(adr,num_reps)
 	snr(adr, num_reps)
