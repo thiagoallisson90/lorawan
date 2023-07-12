@@ -26,6 +26,7 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/simulator.h"
 #include "ns3/log.h"
+#include <iostream>
 
 namespace ns3 {
 namespace lorawan {
@@ -38,6 +39,7 @@ NetworkServerHelper::NetworkServerHelper ()
   p2pHelper.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
   p2pHelper.SetChannelAttribute ("Delay", StringValue ("2ms"));
   SetAdr ("ns3::AdrComponent");
+  m_run = 0;
 }
 
 NetworkServerHelper::~NetworkServerHelper ()
@@ -139,6 +141,12 @@ NetworkServerHelper::SetAdr (std::string type)
 }
 
 void
+NetworkServerHelper::SetRun (int run)
+{
+  m_run =  run;
+}
+
+void
 NetworkServerHelper::InstallComponents (Ptr<NetworkServer> netServer)
 {
   NS_LOG_FUNCTION (this << netServer);
@@ -155,7 +163,10 @@ NetworkServerHelper::InstallComponents (Ptr<NetworkServer> netServer)
   // Add Adr support
   if (m_adrEnabled)
     {
-      netServer->AddComponent (m_adrSupportFactory.Create<NetworkControllerComponent> ());
+      Ptr<NetworkControllerComponent> cc =
+        m_adrSupportFactory.Create<NetworkControllerComponent> ();
+      cc->m_run = m_run;
+      netServer->AddComponent (cc);
     }
 }
 }

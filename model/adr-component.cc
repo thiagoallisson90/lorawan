@@ -19,7 +19,8 @@
  */
 
 #include "ns3/adr-component.h"
-#include <fstream>
+#include <ctime>
+#include <filesystem>
 
 using namespace std;
 
@@ -70,6 +71,11 @@ TypeId AdrComponent::GetTypeId (void)
                    BooleanValue (true),
                    MakeBooleanAccessor (&AdrComponent::m_toggleTxPower),
                    MakeBooleanChecker ())
+    .AddAttribute("Run",
+                  "Running Number",
+                  IntegerValue (0),
+                  MakeIntegerAccessor (&AdrComponent::m_run),
+                  MakeIntegerChecker<int> (0, 1000))
   ;
   return tid;
 }
@@ -221,12 +227,13 @@ void AdrComponent::AdrImplementation (uint8_t *newDataRate,
 
   NS_LOG_DEBUG ("Margin = " << margin_SNR);
 
-  ofstream osf (
-    "/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/snr.csv", 
-    fstream::app);
-  if(osf.is_open ())
+  std::string file = "/home/thiago/Documentos/Doutorado/Simuladores/ns-3-allinone/ns-3.38/snr" + 
+    std::to_string (m_run) + ".csv";
+  std::ofstream logSnr;
+  logSnr.open (file, std::ofstream::out | std::ofstream::app);
+  if (logSnr.is_open ())
     {
-      osf << m_SNR << "," << req_SNR << "," << margin_SNR << endl;
+      logSnr << m_SNR << "," << req_SNR << "," << margin_SNR << std::endl;
     }
 
   //Number of steps to decrement the SF (thereby increasing the Data Rate)
@@ -265,6 +272,8 @@ void AdrComponent::AdrImplementation (uint8_t *newDataRate,
 
   *newDataRate = SfToDr (spreadingFactor);
   *newTxPower = transmissionPower;
+  
+  logSnr.close ();
 }
 
 uint8_t AdrComponent::SfToDr (uint8_t sf)

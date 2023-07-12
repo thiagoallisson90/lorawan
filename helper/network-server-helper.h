@@ -73,6 +73,8 @@ public:
    */
   void SetAdr (std::string type);
 
+  void SetRun (int run);
+
 private:
   void InstallComponents (Ptr<NetworkServer> netServer);
   Ptr<Application> InstallPriv (Ptr<Node> node);
@@ -88,6 +90,8 @@ private:
   bool m_adrEnabled;
 
   ObjectFactory m_adrSupportFactory;
+
+  int m_run;
 };
 
 } // namespace ns3

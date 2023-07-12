@@ -455,6 +455,7 @@ int main (int argc, char *argv[])
   networkServerHelper.SetEndDevices (endDevices);
   networkServerHelper.EnableAdr (adrEnabled);
   networkServerHelper.SetAdr (adrType);
+  networkServerHelper.SetRun (nRun);
   networkServerHelper.Install (networkServers);
   
   // Install the Forwarder application on the gateways

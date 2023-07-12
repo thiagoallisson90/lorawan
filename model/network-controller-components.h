@@ -74,6 +74,8 @@ public:
    */
   virtual void OnFailedReply (Ptr<EndDeviceStatus> status,
                               Ptr<NetworkStatus> networkStatus) = 0;
+
+  int m_run;
 };
 
 ///////////////////////////////
