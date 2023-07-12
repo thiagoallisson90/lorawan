@@ -55,19 +55,24 @@ def calc(adr, num_reps=30):
 	executor.shutdown()
 	print(f'PDR = {adr["PDR"]}, Energy = {adr["Energy"]}')
 
-def snr(num_reps = 30):
+def snr(adr, num_reps = 30):
 	files = [f'{ns3_dir}/snr{i}.csv' for i in range(1, num_reps+1)]
-	x_s = []
+	x_s, mins, maxs, means = [], [], [], []
 	for file in files:
 		data = pd.read_csv(file, names=['snr', 'snr_req', 'snr_margin'])
 		x_s.append(data['snr_margin'].mean())
 		snr_describe = data['snr_margin'].describe()
-		with open('snr-c-analysis.csv', 'a') as arquivo:
-			arquivo.write (snr_describe['min'], snr_describe['max'], snr_describe['mean'])
+		mins.append(snr_describe.min) 
+		maxs.append(snr_describe.max)
+		means.append(snr_describe.mean)
 	
 	adr['SNR'] = np.mean(x_s)
 	adr['SNR_std'] = np.std(x_s)
-
+	mins.sort()
+	maxs.sort(reverse=True)
+	print(f'Lista de min_snr = {mins}')
+	print(f'Lista de max_snr = {mins}')
+	print(f'Lista de mean_snr = {means}')
 
 if __name__ == '__main__':
 	start = time.time()
@@ -82,7 +87,7 @@ if __name__ == '__main__':
 	num_reps = 120
 	simulate(adr,num_reps)
 	calc(adr,num_reps)
-	snr(num_reps)
+	snr(adr, num_reps)
 	end = time.time()
 	
 	print(f'Tempo de execução = {end-start} segundos <-> {(end-start)/60} min')
