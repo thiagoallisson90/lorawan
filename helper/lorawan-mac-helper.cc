@@ -55,6 +55,9 @@ LorawanMacHelper::SetDeviceType(enum DeviceType dt)
     case ED_A:
         m_mac.SetTypeId("ns3::ClassAEndDeviceLorawanMac");
         break;
+    case ED_C:
+        m_mac.SetTypeId("ns3::ClassCEndDeviceLorawanMac");
+        break;
     }
     m_deviceType = dt;
 }
@@ -80,9 +83,9 @@ LorawanMacHelper::Create(Ptr<Node> node, Ptr<NetDevice> device) const
     mac->SetDevice(device);
 
     // If we are operating on an end device, add an address to it
-    if (m_deviceType == ED_A && m_addrGen)
+    if ((m_deviceType == ED_A || m_deviceType == ED_C) && m_addrGen)
     {
-        mac->GetObject<ClassAEndDeviceLorawanMac>()->SetDeviceAddress(m_addrGen->NextAddress());
+        mac->GetObject<EndDeviceLorawanMac>()->SetDeviceAddress(m_addrGen->NextAddress());
     }
 
     // Add a basic list of channels based on the region where the device is
@@ -98,6 +101,25 @@ LorawanMacHelper::Create(Ptr<Node> node, Ptr<NetDevice> device) const
         }
         case LorawanMacHelper::SingleChannel: {
             ConfigureForSingleChannelRegion(edMac);
+            break;
+        }
+        case LorawanMacHelper::ALOHA: {
+            ConfigureForAlohaRegion(edMac);
+            break;
+        }
+        default: {
+            NS_LOG_ERROR("This region isn't supported yet!");
+            break;
+        }
+        }
+    }
+    else if (m_deviceType == ED_C)
+    {
+        Ptr<ClassCEndDeviceLorawanMac> edMac = mac->GetObject<ClassCEndDeviceLorawanMac>();
+        switch (m_region)
+        {
+        case LorawanMacHelper::EU: {
+            ConfigureForEuRegion(edMac);
             break;
         }
         case LorawanMacHelper::ALOHA: {
@@ -170,6 +192,43 @@ LorawanMacHelper::ConfigureForAlohaRegion(Ptr<ClassAEndDeviceLorawanMac> edMac) 
     // Second receive window parameters //
     //////////////////////////////////////
     edMac->SetSecondReceiveWindowDataRate(0);
+    edMac->SetSecondReceiveWindowFrequency(869.525);
+}
+
+void
+LorawanMacHelper::ConfigureForAlohaRegion(Ptr<ClassCEndDeviceLorawanMac> edMac) const
+{
+    NS_LOG_FUNCTION_NOARGS();
+
+    ApplyCommonAlohaConfigurations(edMac);
+
+    /////////////////////////////////////////////////////
+    // TxPower -> Transmission power in dBm conversion //
+    /////////////////////////////////////////////////////
+    edMac->SetTxDbmForTxPower(std::vector<double>{16, 14, 12, 10, 8, 6, 4, 2});
+
+    ////////////////////////////////////////////////////////////
+    // Matrix to know which DataRate the GW will respond with //
+    ////////////////////////////////////////////////////////////
+    LorawanMac::ReplyDataRateMatrix matrix = {{{{0, 0, 0, 0, 0, 0}},
+                                                {{1, 0, 0, 0, 0, 0}},
+                                                {{2, 1, 0, 0, 0, 0}},
+                                                {{3, 2, 1, 0, 0, 0}},
+                                                {{4, 3, 2, 1, 0, 0}},
+                                                {{5, 4, 3, 2, 1, 0}},
+                                                {{6, 5, 4, 3, 2, 1}},
+                                                {{7, 6, 5, 4, 3, 2}}}};
+    edMac->SetReplyDataRateMatrix(matrix);
+
+    /////////////////////
+    // Preamble length //
+    /////////////////////
+    edMac->SetNPreambleSymbols(8);
+
+    //////////////////////////////////////
+    // Second receive window parameters //
+    //////////////////////////////////////
+    edMac->SetSecondReceiveWindowDataRate(5);
     edMac->SetSecondReceiveWindowFrequency(869.525);
 }
 
@@ -267,6 +326,43 @@ LorawanMacHelper::ConfigureForEuRegion(Ptr<ClassAEndDeviceLorawanMac> edMac) con
     // Second receive window parameters //
     //////////////////////////////////////
     edMac->SetSecondReceiveWindowDataRate(0);
+    edMac->SetSecondReceiveWindowFrequency(869.525);
+}
+
+void
+LorawanMacHelper::ConfigureForEuRegion (Ptr<ClassCEndDeviceLorawanMac> edMac) const
+{
+    NS_LOG_FUNCTION_NOARGS();
+
+    ApplyCommonEuConfigurations(edMac);
+
+    /////////////////////////////////////////////////////
+    // TxPower -> Transmission power in dBm conversion //
+    /////////////////////////////////////////////////////
+    edMac->SetTxDbmForTxPower(std::vector<double>{16, 14, 12, 10, 8, 6, 4, 2});
+
+    ////////////////////////////////////////////////////////////
+    // Matrix to know which DataRate the GW will respond with //
+    ////////////////////////////////////////////////////////////
+    LorawanMac::ReplyDataRateMatrix matrix = {{{{0, 0, 0, 0, 0, 0}},
+                                                {{1, 0, 0, 0, 0, 0}},
+                                                {{2, 1, 0, 0, 0, 0}},
+                                                {{3, 2, 1, 0, 0, 0}},
+                                                {{4, 3, 2, 1, 0, 0}},
+                                                {{5, 4, 3, 2, 1, 0}},
+                                                {{6, 5, 4, 3, 2, 1}},
+                                                {{7, 6, 5, 4, 3, 2}}}};
+    edMac->SetReplyDataRateMatrix(matrix);
+
+    /////////////////////
+    // Preamble length //
+    /////////////////////
+    edMac->SetNPreambleSymbols(8);
+
+    //////////////////////////////////////
+    // Second receive window parameters //
+    //////////////////////////////////////
+    edMac->SetSecondReceiveWindowDataRate(5);
     edMac->SetSecondReceiveWindowFrequency(869.525);
 }
 
@@ -469,8 +565,8 @@ LorawanMacHelper::SetSpreadingFactorsUp(NodeContainer endDevices,
         Ptr<NetDevice> netDevice = object->GetDevice(0);
         Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice>();
         NS_ASSERT(loraNetDevice);
-        Ptr<ClassAEndDeviceLorawanMac> mac =
-            loraNetDevice->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+        Ptr<EndDeviceLorawanMac> mac =
+            loraNetDevice->GetMac()->GetObject<EndDeviceLorawanMac>();
         NS_ASSERT(mac);
 
         // Try computing the distance from each gateway and find the best one
@@ -628,8 +724,8 @@ LorawanMacHelper::SetSpreadingFactorsGivenDistribution(NodeContainer endDevices,
         Ptr<NetDevice> netDevice = object->GetDevice(0);
         Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice>();
         NS_ASSERT(loraNetDevice);
-        Ptr<ClassAEndDeviceLorawanMac> mac =
-            loraNetDevice->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+        Ptr<EndDeviceLorawanMac> mac =
+            loraNetDevice->GetMac()->GetObject<EndDeviceLorawanMac>();
         NS_ASSERT(mac);
 
         double prob = uniformRV->GetValue(0, 1);

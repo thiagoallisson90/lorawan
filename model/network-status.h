@@ -22,6 +22,7 @@
 #define NETWORK_STATUS_H
 
 #include "class-a-end-device-lorawan-mac.h"
+#include "class-c-end-device-lorawan-mac.h"
 #include "end-device-status.h"
 #include "gateway-status.h"
 #include "lora-device-address.h"
@@ -62,7 +63,7 @@ class NetworkStatus : public Object
      *
      * \param edMac Pointer to the MAC layer object of the device to be tracked.
      */
-    void AddNode(Ptr<ClassAEndDeviceLorawanMac> edMac);
+    void AddNode(Ptr<EndDeviceLorawanMac> edMac);
 
     /**
      * Add a new gateway to the list of gateways connected to the network.

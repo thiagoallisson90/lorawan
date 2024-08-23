@@ -9,6 +9,7 @@ set(source_files
     model/gateway-lorawan-mac.cc
     model/end-device-lorawan-mac.cc
     model/class-a-end-device-lorawan-mac.cc
+    model/class-c-end-device-lorawan-mac.cc
     model/gateway-lora-phy.cc
     model/end-device-lora-phy.cc
     model/simple-end-device-lora-phy.cc
@@ -19,6 +20,8 @@ set(source_files
     model/periodic-sender.cc
     model/one-shot-sender.cc
     model/forwarder.cc
+    model/lora-application.cc
+    model/poisson-sender.cc
     model/lorawan-mac-header.cc
     model/lora-frame-header.cc
     model/mac-command.cc
@@ -59,6 +62,7 @@ set(header_files
     model/gateway-lorawan-mac.h
     model/end-device-lorawan-mac.h
     model/class-a-end-device-lorawan-mac.h
+    model/class-c-end-device-lorawan-mac.h
     model/gateway-lora-phy.h
     model/end-device-lora-phy.h
     model/simple-end-device-lora-phy.h
@@ -69,6 +73,8 @@ set(header_files
     model/periodic-sender.h
     model/one-shot-sender.h
     model/forwarder.h
+    model/lora-application.h
+    model/poisson-sender.h
     model/lorawan-mac-header.h
     model/lora-frame-header.h
     model/mac-command.h

@@ -449,6 +449,16 @@ class EndDeviceLorawanMac : public LorawanMac
      */
     TracedCallback<uint8_t, bool, Time, Ptr<Packet>> m_requiredTxCallback;
 
+    /**
+     * The message type to apply to packets sent with the Send method.
+     */
+    LorawanMacHeader::MType m_mType;
+
+    /**
+     * current value of the device frame counter.
+     */
+    uint16_t m_currentFCnt;
+
   private:
     /**
      * Randomly shuffle a Ptr<LogicalLoraChannel> vector.
@@ -510,16 +520,6 @@ class EndDeviceLorawanMac : public LorawanMac
      * The aggregated duty cycle this device needs to respect across all sub-bands.
      */
     TracedValue<double> m_aggregatedDutyCycle;
-
-    /**
-     * The message type to apply to packets sent with the Send method.
-     */
-    LorawanMacHeader::MType m_mType;
-
-    /**
-     * current value of the device frame counter.
-     */
-    uint16_t m_currentFCnt;
 };
 
 } // namespace lorawan

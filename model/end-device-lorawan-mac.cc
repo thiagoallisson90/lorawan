@@ -121,12 +121,12 @@ EndDeviceLorawanMac::EndDeviceLorawanMac()
       // LoraWAN default
       m_receiveWindowDurationInSymbols(8),
       // LoraWAN default
+      m_mType(LorawanMacHeader::CONFIRMED_DATA_UP),
+      m_currentFCnt(0),
       m_controlDataRate(false),
       m_lastKnownLinkMargin(0),
       m_lastKnownGatewayCount(0),
-      m_aggregatedDutyCycle(1),
-      m_mType(LorawanMacHeader::CONFIRMED_DATA_UP),
-      m_currentFCnt(0)
+      m_aggregatedDutyCycle(1)
 {
     NS_LOG_FUNCTION(this);
 

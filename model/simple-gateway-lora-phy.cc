@@ -129,6 +129,11 @@ SimpleGatewayLoraPhy::StartReceive(Ptr<Packet> packet,
 
     // Fire the trace source
     m_phyRxBeginTrace(packet);
+    
+    LoraTag tag;
+    packet->RemovePacketTag(tag);
+    tag.SetReceivePower(rxPowerDbm);
+    packet->AddPacketTag(tag);
 
     if (m_isTransmitting)
     {

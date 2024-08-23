@@ -21,6 +21,7 @@
 #define LORAWAN_MAC_HELPER_H
 
 #include "ns3/class-a-end-device-lorawan-mac.h"
+#include "ns3/class-c-end-device-lorawan-mac.h"
 #include "ns3/gateway-lorawan-mac.h"
 #include "ns3/lora-channel.h"
 #include "ns3/lora-device-address-generator.h"
@@ -50,7 +51,8 @@ class LorawanMacHelper
     enum DeviceType
     {
         GW,
-        ED_A
+        ED_A,
+        ED_C
     };
 
     /**
@@ -198,6 +200,13 @@ class LorawanMacHelper
     /**
      * Perform region-specific configurations for the 868 MHz EU band.
      *
+     * \param edMac Pointer to the device MAC layer to configure.
+     */
+    void ConfigureForEuRegion (Ptr<ClassCEndDeviceLorawanMac> edMac) const;
+
+    /**
+     * Perform region-specific configurations for the 868 MHz EU band.
+     *
      * \param gwMac Pointer to the gateway MAC layer to configure.
      */
     void ConfigureForEuRegion(Ptr<GatewayLorawanMac> gwMac) const;
@@ -238,6 +247,13 @@ class LorawanMacHelper
      * \param edMac Pointer to the device MAC layer to configure.
      */
     void ConfigureForAlohaRegion(Ptr<ClassAEndDeviceLorawanMac> edMac) const;
+
+    /**
+     * Perform region-specific configurations for the ALOHA band.
+     *
+     * \param edMac Pointer to the device MAC layer to configure.
+     */
+    void ConfigureForAlohaRegion (Ptr<ClassCEndDeviceLorawanMac> edMac) const;
 
     /**
      * Perform region-specific configurations for the ALOHA band.

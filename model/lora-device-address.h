@@ -165,6 +165,11 @@ class LoraDeviceAddress
     static LoraDeviceAddress ConvertFrom(const Address& address);
 
     /**
+     * Determine if an address is a broadcast address.
+     */
+    bool IsBroadcast ();
+
+    /**
      * Set the address as a 32 bit integer.
      *
      * \param address Full numeric value of the address.
