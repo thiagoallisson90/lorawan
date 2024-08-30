@@ -63,6 +63,8 @@ ClassCEndDeviceLorawanMac::ClassCEndDeviceLorawanMac()
 	m_closeSecondWindow.Cancel();
 	m_secondReceiveWindow = EventId();
 	m_secondReceiveWindow.Cancel();
+
+  m_runDoSend = false;
 }
 
 ClassCEndDeviceLorawanMac::~ClassCEndDeviceLorawanMac()
@@ -210,7 +212,10 @@ ClassCEndDeviceLorawanMac::Receive (Ptr<Packet const> packet)
               if (m_retxParams.retxLeft == 0)
                 {
                   uint8_t txs = m_maxNumbTx - (m_retxParams.retxLeft);
-                  m_requiredTxCallback (txs, false, m_retxParams.firstAttempt, m_retxParams.packet);
+                  if (m_retxParams.packet != nullptr)
+                  {
+                    m_requiredTxCallback (txs, false, m_retxParams.firstAttempt, m_retxParams.packet);
+                  }
                   NS_LOG_DEBUG ("Failure: no more retransmissions left. Used "
                                 << unsigned(txs) << " transmissions.");
 
@@ -238,7 +243,10 @@ ClassCEndDeviceLorawanMac::Receive (Ptr<Packet const> packet)
       else
         {
           uint8_t txs = m_maxNumbTx - (m_retxParams.retxLeft);
-          m_requiredTxCallback (txs, false, m_retxParams.firstAttempt, m_retxParams.packet);
+          if (m_retxParams.packet != nullptr)
+          {
+            m_requiredTxCallback (txs, false, m_retxParams.firstAttempt, m_retxParams.packet);
+          }
           NS_LOG_DEBUG ("Failure: no more retransmissions left. Used " << unsigned(txs)
                                                                        << " transmissions.");
 
@@ -270,7 +278,10 @@ ClassCEndDeviceLorawanMac::FailedReception (Ptr<Packet const> packet)
       else
         {
           uint8_t txs = m_maxNumbTx - (m_retxParams.retxLeft);
-          m_requiredTxCallback (txs, false, m_retxParams.firstAttempt, m_retxParams.packet);
+          if (m_retxParams.packet != nullptr)
+          {
+            m_requiredTxCallback (txs, false, m_retxParams.firstAttempt, m_retxParams.packet);
+          }
           NS_LOG_DEBUG ("Failure: no more retransmissions left. Used " << unsigned(txs)
                                                                        << " transmissions.");
 
@@ -302,6 +313,7 @@ ClassCEndDeviceLorawanMac::DoSend (Ptr<Packet> packet)
   // Close the second receive window before TX
   NS_LOG_DEBUG ("Try to close RX2 window before DoSend.");
   Simulator::Cancel (m_closeSecondWindow);
+  m_runDoSend = true;
   CloseSecondReceiveWindow ();
 
   // Checking if this is the transmission of a new packet
@@ -330,7 +342,10 @@ ClassCEndDeviceLorawanMac::DoSend (Ptr<Packet> packet)
         {
           // Call the callback to notify about the failure
           uint8_t txs = m_maxNumbTx - (m_retxParams.retxLeft);
-          m_requiredTxCallback (txs, false, m_retxParams.firstAttempt, m_retxParams.packet);
+          if (m_retxParams.packet != nullptr)
+          {
+            m_requiredTxCallback (txs, false, m_retxParams.firstAttempt, m_retxParams.packet);
+          }
           NS_LOG_DEBUG (" Received new packet from the application layer: stopping retransmission "
                         "procedure. Used "
                         << unsigned(txs) << " transmissions out of a maximum of "
@@ -403,6 +418,12 @@ ClassCEndDeviceLorawanMac::DoSend (Ptr<Packet> packet)
           SendToPhy (m_retxParams.packet);
         }
     }
+  
+  m_runDoSend = false;
+  if (m_runDoSend)
+  {
+    std::cout << "VSR" << std::endl;
+  }
 }
 
 void
@@ -545,9 +566,14 @@ ClassCEndDeviceLorawanMac::CloseSecondReceiveWindow (void)
 		// If this is the first RX2 receive window after TxFinish, just don't detect ack_timeout
 		if (m_windowRX2BeforeRX1)
 		{
-		NS_LOG_DEBUG ("This is the first time to close RX2 receive window.");
-		return;
+      NS_LOG_DEBUG ("This is the first time to close RX2 receive window.");
+      return;
 		}
+
+    if (m_runDoSend)
+    {
+      return;
+    }
 
 		NS_LOG_DEBUG ("No reception initiated by PHY: rescheduling transmission.");
 		if (m_retxParams.retxLeft > 0)
@@ -560,7 +586,10 @@ ClassCEndDeviceLorawanMac::CloseSecondReceiveWindow (void)
 				m_phy->GetObject<EndDeviceLoraPhy> ()->GetState () != EndDeviceLoraPhy::RX)
 		{
 			uint8_t txs = m_maxNumbTx - (m_retxParams.retxLeft);
-			m_requiredTxCallback (txs, false, m_retxParams.firstAttempt, m_retxParams.packet);
+      if (m_retxParams.packet != nullptr)
+      {
+			  m_requiredTxCallback (txs, false, m_retxParams.firstAttempt, m_retxParams.packet);
+      }
 			NS_LOG_DEBUG ("Failure: no more retransmissions left. Used " << unsigned(txs)
 																		<< " transmissions.");
 
@@ -575,7 +604,10 @@ ClassCEndDeviceLorawanMac::CloseSecondReceiveWindow (void)
 	else
 	{
 		uint8_t txs = m_maxNumbTx - (m_retxParams.retxLeft);
-		m_requiredTxCallback (txs, true, m_retxParams.firstAttempt, m_retxParams.packet);
+    if (m_retxParams.packet != nullptr)
+    {
+		  m_requiredTxCallback (txs, true, m_retxParams.firstAttempt, m_retxParams.packet);
+    }
 		NS_LOG_INFO (
 			"We have " << unsigned(m_retxParams.retxLeft)
 					   << " transmissions left. We were not transmitting confirmed messages.");

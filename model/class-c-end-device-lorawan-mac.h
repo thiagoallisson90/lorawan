@@ -229,6 +229,8 @@ public:
      */
     bool m_windowRX2BeforeRX1;
 
+    bool m_runDoSend;
+
 }; /* ClassCEndDeviceLorawanMac */
 } /* namespace lorawan */
 } /* namespace ns3 */
