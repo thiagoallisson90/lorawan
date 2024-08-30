@@ -420,10 +420,6 @@ ClassCEndDeviceLorawanMac::DoSend (Ptr<Packet> packet)
     }
   
   m_runDoSend = false;
-  if (m_runDoSend)
-  {
-    std::cout << "VSR" << std::endl;
-  }
 }
 
 void
