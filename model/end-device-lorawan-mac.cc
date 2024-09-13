@@ -119,6 +119,8 @@ EndDeviceLorawanMac::EndDeviceLorawanMac()
       // LoraWAN default
       m_address(LoraDeviceAddress(0)),
       // LoraWAN default
+      m_isClassB(false),
+      // LoraWAN default
       m_receiveWindowDurationInSymbols(8),
       // LoraWAN default
       m_mType(LorawanMacHeader::CONFIRMED_DATA_UP),
@@ -466,6 +468,7 @@ EndDeviceLorawanMac::ApplyNecessaryOptions(LoraFrameHeader& frameHeader)
     frameHeader.SetAddress(m_address);
     frameHeader.SetAdr(m_controlDataRate);
     frameHeader.SetAdrAckReq(false); // TODO Set ADRACKREQ if a member variable is true
+    frameHeader.SetFPending(m_isClassB); // Class B
 
     // FPending does not exist in uplink messages
     frameHeader.SetFCnt(m_currentFCnt);
@@ -929,5 +932,18 @@ EndDeviceLorawanMac::GetTransmissionPower()
 {
     return m_txPower;
 }
+
+bool
+EndDeviceLorawanMac::GetHeader()
+{
+    return m_headerDisabled;
+}
+
+uint32_t 
+EndDeviceLorawanMac::GetCodingRate()
+{
+    return m_codingRate;
+}
+
 } // namespace lorawan
 } // namespace ns3

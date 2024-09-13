@@ -370,6 +370,10 @@ class EndDeviceLorawanMac : public LorawanMac
      */
     void AddMacCommand(Ptr<MacCommand> macCommand);
 
+    bool GetHeader();
+
+    uint32_t GetCodingRate();
+
   protected:
     /**
      * Structure representing the parameters that will be used in the
@@ -393,6 +397,7 @@ class EndDeviceLorawanMac : public LorawanMac
     bool m_headerDisabled; //!< Whether or not the LoRa PHY header is disabled for communications by
                            //!< this device.
     LoraDeviceAddress m_address; //!< The address of this device.
+    bool m_isClassB; //!< Enabled Class B.
 
     /**
      * Find the minimum waiting time before the next possible transmission based
