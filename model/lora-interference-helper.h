@@ -141,7 +141,7 @@ class LoraInterferenceHelper
          *
          * \return The number of overlappings as int.
          */
-        int GetOverlappings() const;
+        uint32_t GetOverlappings() const;
 
       private:
         Time m_startTime;      //!< The time this signal begins (at the device).
@@ -150,7 +150,7 @@ class LoraInterferenceHelper
         double m_rxPowerdBm;   //!< The power of this event in dBm (at the device).
         Ptr<Packet> m_packet;  //!< The packet this event was generated for.
         double m_frequencyMHz; //!<  The frequency this event was on.
-        int m_numOverlappings; //!< Number of Overlappings (colissions).
+        uint32_t m_numOverlappings; //!< Number of Overlappings (colissions).
     };
 
     /**

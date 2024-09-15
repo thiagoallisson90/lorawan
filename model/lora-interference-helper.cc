@@ -122,7 +122,7 @@ LoraInterferenceHelper::Event::IncOverlappings()
     m_numOverlappings++;
 }
 
-int 
+uint32_t
 LoraInterferenceHelper::Event::GetOverlappings() const
 {
     return m_numOverlappings;
