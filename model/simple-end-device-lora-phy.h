@@ -28,6 +28,7 @@
 #include "ns3/nstime.h"
 #include "ns3/object.h"
 #include "ns3/traced-value.h"
+#include "ns3/callback.h"
 
 namespace ns3
 {
@@ -71,6 +72,10 @@ class SimpleEndDeviceLoraPhy : public EndDeviceLoraPhy
               double txPowerDbm) override;
 
   private:
+    /**
+     * The estimated time on air to sent packet.
+     */
+    TracedCallback<Ptr<const Packet>, double> m_toa;
 };
 
 } // namespace lorawan
