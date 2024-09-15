@@ -43,7 +43,12 @@ SimpleGatewayLoraPhy::GetTypeId()
     static TypeId tid = TypeId("ns3::SimpleGatewayLoraPhy")
                             .SetParent<GatewayLoraPhy>()
                             .SetGroupName("lorawan")
-                            .AddConstructor<SimpleGatewayLoraPhy>();
+                            .AddConstructor<SimpleGatewayLoraPhy>()
+                            .AddTraceSource("NumOverlappings",
+                                            "Trace source indicating the number "
+                                            "of overlappings (collisions) related to a packet",
+                                            MakeTraceSourceAccessor(&SimpleGatewayLoraPhy::m_overlappings),
+                                            "ns3::Packet::TracedCallback");;
 
     return tid;
 }
@@ -243,6 +248,11 @@ SimpleGatewayLoraPhy::EndReceive(Ptr<Packet> packet, Ptr<LoraInterferenceHelper:
     // method returns a 0.
     uint8_t packetDestroyed = 0;
     packetDestroyed = m_interference.IsDestroyedByInterference(event);
+
+    if (event->GetOverlappings() > 0)
+    {
+        m_overlappings(event->GetPacket(), event->GetOverlappings());
+    }
 
     // Check whether the packet was destroyed
     if (packetDestroyed != uint8_t(0))

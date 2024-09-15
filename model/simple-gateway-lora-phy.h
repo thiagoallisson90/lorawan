@@ -28,6 +28,7 @@
 #include "ns3/nstime.h"
 #include "ns3/object.h"
 #include "ns3/traced-value.h"
+#include "ns3/callback.h"
 
 #include <list>
 
@@ -69,6 +70,11 @@ class SimpleGatewayLoraPhy : public GatewayLoraPhy
               double txPowerDbm) override;
 
   private:
+    /**
+     * The trace source fired when a packet cannot be received because its power
+     * is below the sensitivity threshold.
+     */
+    TracedCallback<Ptr<const Packet>, uint32_t> m_overlappings;
 };
 
 } // namespace lorawan
