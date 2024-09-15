@@ -49,6 +49,7 @@ LoraInterferenceHelper::Event::Event(Time duration,
       m_frequencyMHz(frequencyMHz)
 {
     // NS_LOG_FUNCTION_NOARGS ();
+    m_numOverlappings = 0;
 }
 
 // Event Destructor
@@ -113,6 +114,18 @@ operator<<(std::ostream& os, const LoraInterferenceHelper::Event& event)
     event.Print(os);
 
     return os;
+}
+
+void 
+LoraInterferenceHelper::Event::IncOverlappings()
+{
+    m_numOverlappings++;
+}
+
+int 
+LoraInterferenceHelper::Event::GetOverlappings() const
+{
+    return m_numOverlappings;
 }
 
 /****************************
@@ -318,6 +331,10 @@ LoraInterferenceHelper::IsDestroyedByInterference(Ptr<LoraInterferenceHelper::Ev
 
         // Compute the fraction of time the two events are overlapping
         Time overlap = GetOverlapTime(event, interferer);
+        if (overlap != Seconds(0))
+        {
+            event->IncOverlappings();
+        }
 
         NS_LOG_DEBUG("The two events overlap for " << overlap.GetSeconds() << " s.");
 
