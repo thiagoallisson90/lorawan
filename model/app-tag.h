@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Orange SA
+ * Copyright (c) 2024 Federal University of Piauí
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -14,52 +14,63 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- * Author: Alessandro Aimi <alessandro.aimi@orange.com>
- *                         <alessandro.aimi@cnam.fr>
+ * Author: Thiago Allisson <thiago.allisson@ufpi.edu.br>
  */
 
-#ifndef POISSON_SENDER_H
-#define POISSON_SENDER_H
+#ifndef APP_TAG_H
+#define APP_TAG_H
 
-#include "lora-application.h"
+#include "ns3/tag.h"
 
 namespace ns3
 {
 namespace lorawan
 {
 
-class PoissonSender : public LoraApplication
+enum MsgType
+{
+  NONE,
+  RES_IMR,
+  COMM_IMR,
+  ODMR,
+  BILLING_INFO,
+  RCC,
+  PCC,
+  AN
+};
+
+/**
+ * \ingroup lorawan
+ *
+ * Tag used to save various data about a packet, like its Spreading Factor and data about
+ * interference.
+ */
+class AppTag : public Tag
 {
   public:
-    PoissonSender();
-    ~PoissonSender() override;
-
+    /**
+     *  Register this type.
+     *  \return The object TypeId.
+     */
     static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
 
+    AppTag(uint8_t msgType);
+    AppTag();
+
+    ~AppTag() override; //!< Destructor
+
+    void Serialize(TagBuffer i) const override;
+    void Deserialize(TagBuffer i) override;
+    uint32_t GetSerializedSize() const override;
+    void Print(std::ostream& os) const override;
+     
     uint8_t GetMsgType() const;
     void SetMsgType(uint8_t msgType);
 
-  protected:
-    void DoInitialize() override;
-    void DoDispose() override;
-
   private:
-    /**
-     * Start the application by scheduling the first SendPacket event
-     */
-    void StartApplication() override;
-
-    /**
-     * Send a packet using the LoraNetDevice's Send method
-     */
-    void SendPacket() override;
-
-    Ptr<ExponentialRandomVariable> m_interval; //!< Random variable modeling packet inter-send time
-
     uint8_t m_msgType;
 };
-
 } // namespace lorawan
-
 } // namespace ns3
-#endif /* POISSON_SENDER_H */
+#endif

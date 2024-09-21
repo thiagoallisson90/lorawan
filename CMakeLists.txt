@@ -21,6 +21,7 @@ set(source_files
     model/one-shot-sender.cc
     model/forwarder.cc
     model/lora-application.cc
+    model/app-tag.cc
     model/poisson-sender.cc
     model/lorawan-mac-header.cc
     model/lora-frame-header.cc
@@ -74,6 +75,7 @@ set(header_files
     model/one-shot-sender.h
     model/forwarder.h
     model/lora-application.h
+    model/app-tag.h
     model/poisson-sender.h
     model/lorawan-mac-header.h
     model/lora-frame-header.h

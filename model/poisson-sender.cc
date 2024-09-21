@@ -19,6 +19,7 @@
  */
 
 #include "poisson-sender.h"
+#include "app-tag.h"
 
 #include "ns3/double.h"
 #include "ns3/simulator.h"
@@ -43,6 +44,7 @@ PoissonSender::GetTypeId()
 }
 
 PoissonSender::PoissonSender()
+    : m_msgType(NONE)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -93,6 +95,8 @@ PoissonSender::SendPacket()
     // Create and send a new packet
     Ptr<Packet> packet;
     packet = Create<Packet>(m_basePktSize);
+    AppTag appTag(m_msgType);
+    packet->AddPacketTag(appTag);
     m_mac->Send(packet);
 
     Time interval = Min(Seconds(m_interval->GetValue()), Days(1));
@@ -101,6 +105,18 @@ PoissonSender::SendPacket()
     m_sendEvent = Simulator::Schedule(interval, &PoissonSender::SendPacket, this);
 
     NS_LOG_DEBUG("Sent a packet of size " << packet->GetSize());
+}
+
+uint8_t 
+PoissonSender::GetMsgType() const
+{
+    return m_msgType;
+}
+
+void 
+PoissonSender::SetMsgType(uint8_t msgType)
+{
+    m_msgType = msgType;
 }
 
 } // namespace lorawan
