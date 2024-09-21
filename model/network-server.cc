@@ -185,6 +185,18 @@ NetworkServer::AddComponent(Ptr<NetworkControllerComponent> component)
     m_controller->Install(component);
 }
 
+Ptr<Packet>
+NetworkServer::Send(uint32_t payloadSize, LoraDeviceAddress deviceAddress)
+{
+    NS_LOG_FUNCTION(this << payloadSize << deviceAddress);
+
+    Ptr<Packet> packet = m_status->PrepareData(payloadSize, deviceAddress, 2);
+    Address gwAddress = m_status->GetBestGatewayForDevice(deviceAddress, 2);
+    m_status->SendThroughGateway(packet, gwAddress);
+
+    return packet;
+}
+
 Ptr<NetworkStatus>
 NetworkServer::GetNetworkStatus()
 {

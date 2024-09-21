@@ -147,6 +147,8 @@ class NetworkStatus : public Object
      */
     int CountEndDevices();
 
+    Ptr<Packet> PrepareData(uint32_t payloadSize, LoraDeviceAddress edAddress, int windowNumber);
+
   public:
     std::map<LoraDeviceAddress, Ptr<EndDeviceStatus>>
         m_endDeviceStatuses; //!< Map tracking the state of devices connected to this network server
