@@ -162,9 +162,6 @@ NetworkServer::Receive(Ptr<NetDevice> device,
     // Create a copy of the packet
     Ptr<Packet> myPacket = packet->Copy();
 
-    // Fire the trace source
-    m_receivedPacket(packet);
-
     // Inform the scheduler of the newly arrived packet
     m_scheduler->OnReceivedPacket(packet);
 
@@ -173,6 +170,9 @@ NetworkServer::Receive(Ptr<NetDevice> device,
 
     // Inform the controller of the newly arrived packet
     m_controller->OnNewPacket(packet);
+
+    // Fire the trace source
+    m_receivedPacket(packet);
 
     return true;
 }
@@ -192,7 +192,11 @@ NetworkServer::Send(uint32_t payloadSize, LoraDeviceAddress deviceAddress)
 
     Ptr<Packet> packet = m_status->PrepareData(payloadSize, deviceAddress, 2);
     Address gwAddress = m_status->GetBestGatewayForDevice(deviceAddress, 2);
-    m_status->SendThroughGateway(packet, gwAddress);
+
+    if (gwAddress != Address())
+    {
+        m_status->SendThroughGateway(packet, gwAddress);
+    }
 
     return packet;
 }
