@@ -125,6 +125,11 @@ SimpleEndDeviceLoraPhy::StartReceive(Ptr<Packet> packet,
     // change (and making the interference relevant) while the interference is
     // still incoming.
 
+    LoraTag tag;
+    packet->RemovePacketTag(tag);
+    tag.SetReceivePower(rxPowerDbm);
+    packet->AddPacketTag(tag);
+
     Ptr<LoraInterferenceHelper::Event> event;
     event = m_interference.Add(duration, rxPowerDbm, sf, packet, frequencyMHz);
 
