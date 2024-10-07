@@ -125,6 +125,11 @@ class NetworkStatus : public Object
     Ptr<Packet> GetReplyForDevice(LoraDeviceAddress edAddress, int windowNumber);
 
     /**
+     * Get the data packet for the specified device address.
+     */
+    Ptr<Packet> GetDataPacketForDevice (Ptr<Packet> data, LoraDeviceAddress edAddress, int windowNumber);
+
+    /**
      * Get the EndDeviceStatus of the device that sent a packet.
      *
      * \param packet The packet sent by the end device.
@@ -147,7 +152,7 @@ class NetworkStatus : public Object
      */
     int CountEndDevices();
 
-    Ptr<Packet> PrepareData(uint32_t payloadSize, LoraDeviceAddress edAddress, int windowNumber);
+    //Ptr<Packet> PrepareData(uint32_t payloadSize, LoraDeviceAddress edAddress, int windowNumber);
 
   public:
     std::map<LoraDeviceAddress, Ptr<EndDeviceStatus>>

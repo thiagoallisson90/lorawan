@@ -85,6 +85,11 @@ class NetworkScheduler : public Object
      */
     void OnReceiveWindowOpportunity(LoraDeviceAddress deviceAddress, int window);
 
+    /**
+     * Send data to the end device in the specified receive window
+     */
+    void DoSend(Ptr<Packet> data, LoraDeviceAddress deviceAddress, int window);
+
   private:
     TracedCallback<Ptr<const Packet>>
         m_receiveWindowOpened;           //!< Trace callback source for reception windows openings.

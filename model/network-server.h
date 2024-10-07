@@ -133,10 +133,8 @@ class NetworkServer : public Application
      * Send a packet to a end device
      * \param data payload in frame
      * \param deviceAddress address of end device
-     * 
-     * \return The packet sent as Ptr<Packet>
      */
-    Ptr<Packet> Send(uint32_t payloadSize, LoraDeviceAddress deviceAddress);
+    void Send(Ptr<Packet> data, LoraDeviceAddress deviceAddress);
 
   protected:
     Ptr<NetworkStatus> m_status;         //!< Ptr to the NetworkStatus object.

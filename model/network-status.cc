@@ -228,6 +228,54 @@ NetworkStatus::GetEndDeviceStatus(Ptr<const Packet> packet)
     }
 }
 
+Ptr<Packet>
+NetworkStatus::GetDataPacketForDevice(Ptr<Packet> data, LoraDeviceAddress edAddress, int windowNumber)
+{
+    // Get the reply packet
+    auto it = m_endDeviceStatuses.find(edAddress);
+    if (it == m_endDeviceStatuses.end())
+    {
+        return nullptr;
+    }
+    Ptr<EndDeviceStatus> edStatus = it->second;
+    //edStatus->SetReplyPayload(data);
+    //Ptr<Packet> packet = edStatus->GetCompleteReplyPacket();
+    
+    LorawanMacHeader mHdr;
+    LoraFrameHeader fHdr;
+    fHdr.SetAddress(edAddress);
+    fHdr.SetAsDownlink();
+    mHdr.SetMType(LorawanMacHeader::UNCONFIRMED_DATA_DOWN);
+    data->AddHeader(fHdr);
+    data->AddHeader(mHdr);
+
+    Ptr<ClassAEndDeviceLorawanMac> edMacA = edStatus->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+    Ptr<ClassCEndDeviceLorawanMac> edMacC = edStatus->GetMac()->GetObject<ClassCEndDeviceLorawanMac>();
+
+    NS_LOG_DEBUG ("Class_A_Mac:" << edMacA << "  Class_C_Mac:" << edMacC);
+    NS_ASSERT (edMacA != 0 || edMacC != 0);
+
+    double firstDR = edMacA ? edMacA->GetFirstReceiveWindowDataRate() : edMacC->GetFirstReceiveWindowDataRate();
+    double secDR = edMacA ? edMacA->GetSecondReceiveWindowDataRate() : edMacC->GetSecondReceiveWindowDataRate();
+
+    // Apply the appropriate tag
+    LoraTag tag;
+    switch (windowNumber)
+    {
+    case 1:
+        tag.SetDataRate(firstDR);
+        tag.SetFrequency(edStatus->GetFirstReceiveWindowFrequency());
+        break;
+    case 2:
+        tag.SetDataRate(secDR);
+        tag.SetFrequency(edStatus->GetSecondReceiveWindowFrequency());
+        break;
+    }
+
+    data->AddPacketTag(tag);
+    return data;
+}
+
 Ptr<EndDeviceStatus>
 NetworkStatus::GetEndDeviceStatus(LoraDeviceAddress address)
 {
@@ -253,7 +301,7 @@ NetworkStatus::CountEndDevices()
     return m_endDeviceStatuses.size();
 }
 
-Ptr<Packet>
+/*Ptr<Packet>
 NetworkStatus::PrepareData(uint32_t payloadSize, LoraDeviceAddress edAddress, int windowNumber)
 {
     Ptr<EndDeviceStatus> edStatus = m_endDeviceStatuses.find(edAddress)->second;
@@ -283,7 +331,7 @@ NetworkStatus::PrepareData(uint32_t payloadSize, LoraDeviceAddress edAddress, in
 
     packet->AddPacketTag(tag);
     return packet;
-}
+}*/
 
 } // namespace lorawan
 } // namespace ns3
