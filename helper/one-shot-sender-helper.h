@@ -82,6 +82,8 @@ class OneShotSenderHelper
      */
     void SetSendTime(Time sendTime);
 
+    void SetPayload(int payload);
+
   private:
     /**
      * Install a OneShotSender application on the input Node configured with all the attributes set
@@ -95,6 +97,7 @@ class OneShotSenderHelper
     ObjectFactory m_factory; //!< The object factory
     Time m_sendTime; //!< Time at which the OneShotSender applications will be configured to send
                      //!< the packet
+    int m_payload;
 };
 
 } // namespace lorawan

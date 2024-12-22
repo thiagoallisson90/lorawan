@@ -36,6 +36,7 @@ NS_LOG_COMPONENT_DEFINE("OneShotSenderHelper");
 OneShotSenderHelper::OneShotSenderHelper()
 {
     m_factory.SetTypeId("ns3::OneShotSender");
+    m_payload = 10;
 }
 
 OneShotSenderHelper::~OneShotSenderHelper()
@@ -80,11 +81,18 @@ OneShotSenderHelper::InstallPriv(Ptr<Node> node) const
     Ptr<OneShotSender> app = m_factory.Create<OneShotSender>();
 
     app->SetSendTime(m_sendTime);
+    app->SetPayload(m_payload);
 
     app->SetNode(node);
     node->AddApplication(app);
 
     return app;
+}
+
+void
+OneShotSenderHelper::SetPayload(int payload)
+{
+    m_payload = payload;
 }
 } // namespace lorawan
 } // namespace ns3

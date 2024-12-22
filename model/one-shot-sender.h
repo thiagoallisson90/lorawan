@@ -77,10 +77,13 @@ class OneShotSender : public Application
      */
     void StopApplication() override;
 
+    void SetPayload(int payload);
   private:
     Time m_sendTime;       //!< The time at which to send the packet.
     EventId m_sendEvent;   //!< The sending event.
     Ptr<LorawanMac> m_mac; //!< The MAC layer of this node.
+
+    int m_payloadSize;
 };
 
 } // namespace lorawan

@@ -49,6 +49,7 @@ OneShotSender::GetTypeId()
 OneShotSender::OneShotSender()
 {
     NS_LOG_FUNCTION_NOARGS();
+    m_payloadSize = 10;
 }
 
 OneShotSender::OneShotSender(Time sendTime)
@@ -76,7 +77,7 @@ OneShotSender::SendPacket()
     NS_LOG_FUNCTION(this);
 
     // Create and send a new packet
-    Ptr<Packet> packet = Create<Packet>(10);
+    Ptr<Packet> packet = Create<Packet>(m_payloadSize);
     m_mac->Send(packet);
 }
 
@@ -105,6 +106,12 @@ OneShotSender::StopApplication()
 {
     NS_LOG_FUNCTION_NOARGS();
     Simulator::Cancel(m_sendEvent);
+}
+
+void
+OneShotSender::SetPayload(int payload)
+{
+    m_payloadSize = payload;
 }
 } // namespace lorawan
 } // namespace ns3
