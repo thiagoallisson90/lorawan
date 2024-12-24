@@ -768,5 +768,72 @@ LorawanMacHelper::SetSpreadingFactorsGivenDistribution(NodeContainer endDevices,
 
 } //  end function
 
+std::vector<int>
+LorawanMacHelper::SetSpreadingFactorsUpPerCluster(NodeContainer endDevices,
+                                                  NodeContainer gateways,
+                                                  Ptr<LoraChannel> channel,
+                                                  std::vector<int> labels)
+{
+    NS_LOG_FUNCTION_NOARGS();
+
+    std::vector<int> sfQuantity(6, 0);
+    for (uint32_t i = 0; i < endDevices.GetN(); i++)
+    {
+        Ptr<Node> object = endDevices.Get(i);
+        Ptr<MobilityModel> position = object->GetObject<MobilityModel>();
+        NS_ASSERT(position);
+        Ptr<NetDevice> netDevice = object->GetDevice(0);
+        Ptr<LoraNetDevice> loraNetDevice = netDevice->GetObject<LoraNetDevice>();
+        NS_ASSERT(loraNetDevice);
+        Ptr<EndDeviceLorawanMac> mac =
+            loraNetDevice->GetMac()->GetObject<EndDeviceLorawanMac>();
+        NS_ASSERT(mac);
+
+        // Try computing the distance from each gateway and find the best one
+        Ptr<Node> bestGateway = gateways.Get(labels.at(i));
+        Ptr<MobilityModel> bestGatewayPosition = bestGateway->GetObject<MobilityModel>();
+
+        // Assume devices transmit at 14 dBm
+        double rxPower = channel->GetRxPower(14, position, bestGatewayPosition);
+
+        // Get the end device sensitivity
+        Ptr<EndDeviceLoraPhy> edPhy = loraNetDevice->GetPhy()->GetObject<EndDeviceLoraPhy>();
+        const double* edSensitivity = edPhy->sensitivity;
+
+        if (rxPower > *edSensitivity)
+        {
+            mac->SetDataRate(5);
+            sfQuantity[0] = sfQuantity[0] + 1;
+        }
+        else if (rxPower > *(edSensitivity + 1))
+        {
+            mac->SetDataRate(4);
+            sfQuantity[1] = sfQuantity[1] + 1;
+        }
+        else if (rxPower > *(edSensitivity + 2))
+        {
+            mac->SetDataRate(3);
+            sfQuantity[2] = sfQuantity[2] + 1;
+        }
+        else if (rxPower > *(edSensitivity + 3))
+        {
+            mac->SetDataRate(2);
+            sfQuantity[3] = sfQuantity[3] + 1;
+        }
+        else if (rxPower > *(edSensitivity + 4))
+        {
+            mac->SetDataRate(1);
+            sfQuantity[4] = sfQuantity[4] + 1;
+        }
+        else 
+        {
+            mac->SetDataRate(0);
+            sfQuantity[5] = sfQuantity[5] + 1;
+        }
+    }
+
+    return sfQuantity;
+}                                                       
+
 } // namespace lorawan
 } // namespace ns3
