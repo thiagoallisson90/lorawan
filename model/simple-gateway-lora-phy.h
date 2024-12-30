@@ -74,7 +74,7 @@ class SimpleGatewayLoraPhy : public GatewayLoraPhy
      * The trace source fired when a packet cannot be received because its power
      * is below the sensitivity threshold.
      */
-    TracedCallback<Ptr<const Packet>, uint32_t> m_overlappings;
+    TracedCallback<Ptr<const Packet>, uint32_t, uint32_t> m_overlappings;
 };
 
 } // namespace lorawan

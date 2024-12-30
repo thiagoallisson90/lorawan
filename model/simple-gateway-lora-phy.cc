@@ -251,7 +251,7 @@ SimpleGatewayLoraPhy::EndReceive(Ptr<Packet> packet, Ptr<LoraInterferenceHelper:
 
     if (event->GetOverlappings() > 0)
     {
-        m_overlappings(event->GetPacket(), event->GetOverlappings());
+        m_overlappings(event->GetPacket(), event->GetOverlappings(), GetDevice()->GetNode()->GetId());
     }
 
     // Check whether the packet was destroyed
