@@ -81,9 +81,9 @@ PoissonSender::StartApplication()
     NS_LOG_DEBUG("Starting up application with a first event with a " << m_initialDelay.GetSeconds()
                                                                       << " seconds delay");
 
-    Time interval = Min(Seconds(m_interval->GetValue()), Days(1));                                                                    
-    //m_sendEvent = Simulator::Schedule(m_initialDelay, &PoissonSender::SendPacket, this);
-    m_sendEvent = Simulator::Schedule(interval, &PoissonSender::SendPacket, this);
+    //Time interval = Min(Seconds(m_interval->GetValue()), Days(1)); 
+    m_sendEvent = Simulator::Schedule(m_initialDelay, &PoissonSender::SendPacket, this);
+    //m_sendEvent = Simulator::Schedule(interval, &PoissonSender::SendPacket, this);
     NS_LOG_DEBUG("Event Id: " << m_sendEvent.GetUid());
 }
 
