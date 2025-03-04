@@ -25,12 +25,12 @@ namespace lorawan
 {
 
 // Thiago Allisson: Add struct SfAndPr
-struct SfAndPr
+struct EdAndPr
 {
   int m_sf;
   double m_pr;
 
-  SfAndPr(int sf, double pr) :
+  EdAndPr(int sf, double pr) :
     m_sf(sf), m_pr(pr)
   {
   }

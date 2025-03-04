@@ -19,6 +19,12 @@ namespace ns3
 namespace lorawan
 {
 
+// Thiago Allisson: Add função ComparePerPr
+bool comparePerPr(const EdAndPr& a, const EdAndPr& b) 
+{
+  return a.m_pr > b.m_pr;
+}
+
 NS_LOG_COMPONENT_DEFINE("LorawanMacHelper");
 
 LorawanMacHelper::LorawanMacHelper()
