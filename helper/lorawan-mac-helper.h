@@ -19,6 +19,8 @@
 #include "ns3/node-container.h"
 #include "ns3/random-variable-stream.h"
 
+#include <algorithm>
+
 namespace ns3
 {
 namespace lorawan
@@ -27,11 +29,11 @@ namespace lorawan
 // Thiago Allisson: Add struct SfAndPr
 struct EdAndPr
 {
-  int m_sf;
+  int m_ed;
   double m_pr;
 
-  EdAndPr(int sf, double pr) :
-    m_sf(sf), m_pr(pr)
+  EdAndPr(int ed, double pr) :
+    m_ed(ed), m_pr(pr)
   {
   }
 };
@@ -157,12 +159,14 @@ class LorawanMacHelper
     // Thiago Allisson: Criando C-SFA (Closest-SFA)                                      
     static std::vector<int> CSFA(NodeContainer endDevices,
                                  NodeContainer gateways,
-                                 Ptr<LoraChannel> channel);
+                                 Ptr<LoraChannel> channel,
+                                 bool useGwSens=false);
 
     // Thiago Allisson: Criando CE-SFA (Capture Effect-SFA) default                                                                       
     static std::vector<int> CeSFA(NodeContainer endDevices,
                                  NodeContainer gateways,
-                                 Ptr<LoraChannel> channel);
+                                 Ptr<LoraChannel> channel,
+                                 bool useGwSens=false);
 
     /**
      * Randomly initialize the end devices' data rate parameter according to the given

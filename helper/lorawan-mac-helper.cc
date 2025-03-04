@@ -687,7 +687,8 @@ LorawanMacHelper::SetSpreadingFactorsUpBasedOnGWSens(NodeContainer endDevices,
 
 static std::vector<int> CSFA(NodeContainer endDevices,
                              NodeContainer gateways,
-                             Ptr<LoraChannel> channel)
+                             Ptr<LoraChannel> channel,
+                             bool useGwSens=false)
 {
     NS_LOG_FUNCTION_NOARGS();
 
@@ -735,8 +736,7 @@ static std::vector<int> CSFA(NodeContainer endDevices,
         Ptr<NetDevice> gatewayNetDevice = bestGateway->GetDevice (0);
         Ptr<LoraNetDevice> gatewayLoraNetDevice = DynamicCast<LoraNetDevice>(gatewayNetDevice);
         Ptr<GatewayLoraPhy> gatewayPhy = DynamicCast<GatewayLoraPhy> (gatewayLoraNetDevice->GetPhy ()); 
-        const double *gwSensitivity = gatewayPhy->sensitivity; // gateway-lora-phy.cc => loc 131
-        // const double* edSensitivity = EndDeviceLoraPhy::sensitivity; // end-device-lora-phy.cc => loc 77
+        const double *gwSensitivity = useGwSens ? gatewayPhy->sensitivity : EndDeviceLoraPhy::sensitivity;
 
         if(rxPower > *gwSensitivity)
         {
@@ -782,9 +782,16 @@ static std::vector<int> CSFA(NodeContainer endDevices,
 // ToDo
 static std::vector<int> CeSFA(NodeContainer endDevices,
                               NodeContainer gateways,
-                              Ptr<LoraChannel> channel)
+                              Ptr<LoraChannel> channel,
+                              bool useGwSens=false)
 {
     NS_LOG_FUNCTION_NOARGS();
+
+    std::vector<EdAndPr> vecSf8;
+    std::vector<EdAndPr> vecSf9;
+    std::vector<EdAndPr> vecSf10;
+    std::vector<EdAndPr> vecSf11;
+    std::vector<EdAndPr> vecSf12;
 
     std::vector<int> sfQuantity(7, 0);
     for (auto j = endDevices.Begin(); j != endDevices.End(); ++j)
@@ -828,7 +835,7 @@ static std::vector<int> CeSFA(NodeContainer endDevices,
         Ptr<NetDevice> gatewayNetDevice = bestGateway->GetDevice (0);
         Ptr<LoraNetDevice> gatewayLoraNetDevice = DynamicCast<LoraNetDevice>(gatewayNetDevice);
         Ptr<GatewayLoraPhy> gatewayPhy = DynamicCast<GatewayLoraPhy> (gatewayLoraNetDevice->GetPhy ()); 
-        const double *gwSensitivity = gatewayPhy->sensitivity; // gateway-lora-phy.cc => loc 131
+        const double *gwSensitivity = useGwSens ? gatewayPhy->sensitivity : EndDeviceLoraPhy::sensitivity;
 
         if(rxPower > *gwSensitivity)
         {
@@ -839,36 +846,136 @@ static std::vector<int> CeSFA(NodeContainer endDevices,
         {
             mac->SetDataRate(4);
             sfQuantity[1] = sfQuantity[1] + 1;
+
+            vecSf8.push_back(EdAndPr(object->GetId(), rxPower));
         }
         else if (rxPower > *(gwSensitivity+2))
         {
             mac->SetDataRate(3);
             sfQuantity[2] = sfQuantity[2] + 1;
 
+            vecSf9.push_back(EdAndPr(object->GetId(), rxPower));
         }
         else if (rxPower > *(gwSensitivity+3))
         {
             mac->SetDataRate(2);
             sfQuantity[3] = sfQuantity[3] + 1;
+
+            vecSf10.push_back(EdAndPr(object->GetId(), rxPower));
         }
         else if (rxPower > *(gwSensitivity+4))
         {
             mac->SetDataRate(1);
             sfQuantity[4] = sfQuantity[4] + 1;
+
+            vecSf11.push_back(EdAndPr(object->GetId(), rxPower));
         }
         else if (rxPower > *(gwSensitivity+5))
         {
             mac->SetDataRate(0);
             sfQuantity[5] = sfQuantity[5] + 1;
+
+            vecSf12.push_back(EdAndPr(object->GetId(), rxPower));
         }
         else // Device is out of range. Assign SF12.
         {
             mac->SetDataRate(0);
             sfQuantity[6] = sfQuantity[6] + 1;
+
+            vecSf12.push_back(EdAndPr(object->GetId(), rxPower));
         }
     } // end loop on nodes
 
     // Ordenar de Forma Crescente SFs por Potência Recebida pelo GWs
+    std::sort(vecSf8.begin(), vecSf8.end(), comparePerPr);
+    std::sort(vecSf9.begin(), vecSf9.end(), comparePerPr);
+    std::sort(vecSf10.begin(), vecSf10.end(), comparePerPr);
+    std::sort(vecSf11.begin(), vecSf11.end(), comparePerPr);
+    std::sort(vecSf12.begin(), vecSf12.end(), comparePerPr);
+
+    std::vector<int> newSfQuantity(6, 0);
+    for (size_t i = 0; i < sfQuantity.size(); i++)
+    {
+        if (i < 6)
+        {
+            newSfQuantity[i] = sfQuantity[i];
+        }
+        else 
+        {
+            newSfQuantity[5] += sfQuantity[i];
+        }
+    }
+
+    for (int i = 0; i < vecSf8.size() * 0.03; i++)
+    {
+        EdAndPr data = vecSf8[i];
+
+        Ptr<Node> node = endDevices.Get(data.m_ed);
+        Ptr<LoraNetDevice> dev = node->GetDevice(0)->GetObject<LoraNetDevice>();
+        Ptr<EndDeviceLorawanMac> mac = dev->GetMac()->GetObject<EndDeviceLorawanMac>();
+        mac->SetDataRate(5);
+
+        newSfQuantity[0]++;
+        newSfQuantity[1]--;
+    }
+
+    for (int i = 0; i < vecSf9.size() * 0.03; i++)
+    {
+        EdAndPr data = vecSf9[i];
+
+        Ptr<Node> node = endDevices.Get(data.m_ed);
+        Ptr<LoraNetDevice> dev = node->GetDevice(0)->GetObject<LoraNetDevice>();
+        Ptr<EndDeviceLorawanMac> mac = dev->GetMac()->GetObject<EndDeviceLorawanMac>();
+        mac->SetDataRate(4);
+
+        newSfQuantity[1]++;
+        newSfQuantity[2]--;
+    }
+
+    for (int i = 0; i < vecSf10.size() * 0.05; i++)
+    {
+        EdAndPr data = vecSf10[i];
+
+        Ptr<Node> node = endDevices.Get(data.m_ed);
+        Ptr<LoraNetDevice> dev = node->GetDevice(0)->GetObject<LoraNetDevice>();
+        Ptr<EndDeviceLorawanMac> mac = dev->GetMac()->GetObject<EndDeviceLorawanMac>();
+        mac->SetDataRate(3);
+
+        newSfQuantity[2]++;
+        newSfQuantity[3]--;
+    }
+
+    for (int i = 0; i < vecSf11.size() * 0.05; i++)
+    {
+        EdAndPr data = vecSf11[i];
+
+        Ptr<Node> node = endDevices.Get(data.m_ed);
+        Ptr<LoraNetDevice> dev = node->GetDevice(0)->GetObject<LoraNetDevice>();
+        Ptr<EndDeviceLorawanMac> mac = dev->GetMac()->GetObject<EndDeviceLorawanMac>();
+        mac->SetDataRate(2);
+
+        newSfQuantity[3]++;
+        newSfQuantity[4]--;
+    }
+
+    for (int i = 0; i < vecSf12.size() * 0.05; i++)
+    {
+        EdAndPr data = vecSf12[i];
+
+        Ptr<Node> node = endDevices.Get(data.m_ed);
+        Ptr<LoraNetDevice> dev = node->GetDevice(0)->GetObject<LoraNetDevice>();
+        Ptr<EndDeviceLorawanMac> mac = dev->GetMac()->GetObject<EndDeviceLorawanMac>();
+        mac->SetDataRate(1);
+
+        newSfQuantity[4]++;
+        newSfQuantity[5]--;
+    }
+
+    vecSf8.clear();
+    vecSf9.clear();
+    vecSf10.clear();
+    vecSf11.clear();
+    vecSf12.clear();
 
     return sfQuantity;
 }
