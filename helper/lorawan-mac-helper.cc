@@ -679,6 +679,100 @@ LorawanMacHelper::SetSpreadingFactorsUpBasedOnGWSens(NodeContainer endDevices,
 } //  end function
 
 
+static std::vector<int> CSFA(NodeContainer endDevices,
+                             NodeContainer gateways,
+                             Ptr<LoraChannel> channel)
+{
+    NS_LOG_FUNCTION_NOARGS();
+
+    std::vector<int> sfQuantity(7, 0);
+    for (auto j = endDevices.Begin(); j != endDevices.End(); ++j)
+    {
+        Ptr<Node> object = *j;
+        Ptr<MobilityModel> position = object->GetObject<MobilityModel>();
+        NS_ASSERT(position);
+        Ptr<NetDevice> netDevice = object->GetDevice(0);
+        Ptr<LoraNetDevice> loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+        NS_ASSERT(loraNetDevice);
+        Ptr<ClassAEndDeviceLorawanMac> mac =
+            DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+        NS_ASSERT(mac);
+
+        // Try computing the distance from each gateway and find the best one
+        Ptr<Node> bestGateway = gateways.Get(0);
+        Ptr<MobilityModel> bestGatewayPosition = bestGateway->GetObject<MobilityModel>();
+
+        // Assume devices transmit at 14 dBm
+        // double highestRxPower = channel->GetRxPower(14, position, bestGatewayPosition);
+        double highestRxPower = position->GetDistanceFrom(bestGatewayPosition); // m
+
+        for (auto currentGw = gateways.Begin() + 1; currentGw != gateways.End(); ++currentGw)
+        {
+            // Compute the power received from the current gateway
+            Ptr<Node> curr = *currentGw;
+            Ptr<MobilityModel> currPosition = curr->GetObject<MobilityModel>();
+            // double currentRxPower = channel->GetRxPower(14, position, currPosition); // dBm
+            double currentRxPower = position->GetDistanceFrom(currPosition); // m
+
+            if (currentRxPower < highestRxPower)
+            {
+                bestGateway = curr;
+                bestGatewayPosition = currPosition;
+                highestRxPower = currentRxPower;
+            }
+        }
+
+        // NS_LOG_DEBUG ("Rx Power: " << highestRxPower);
+        double rxPower = highestRxPower;
+
+        // Get the Gw sensitivity
+        Ptr<NetDevice> gatewayNetDevice = bestGateway->GetDevice (0);
+        Ptr<LoraNetDevice> gatewayLoraNetDevice = DynamicCast<LoraNetDevice>(gatewayNetDevice);
+        Ptr<GatewayLoraPhy> gatewayPhy = DynamicCast<GatewayLoraPhy> (gatewayLoraNetDevice->GetPhy ()); 
+        const double *gwSensitivity = gatewayPhy->sensitivity; // gateway-lora-phy.cc => loc 131
+        // const double* edSensitivity = EndDeviceLoraPhy::sensitivity; // end-device-lora-phy.cc => loc 77
+
+        if(rxPower > *gwSensitivity)
+        {
+            mac->SetDataRate(5);
+            sfQuantity[0] = sfQuantity[0] + 1;
+        }
+        else if (rxPower > *(gwSensitivity+1))
+        {
+            mac->SetDataRate(4);
+            sfQuantity[1] = sfQuantity[1] + 1;
+        }
+        else if (rxPower > *(gwSensitivity+2))
+        {
+            mac->SetDataRate(3);
+            sfQuantity[2] = sfQuantity[2] + 1;
+
+        }
+        else if (rxPower > *(gwSensitivity+3))
+        {
+            mac->SetDataRate(2);
+            sfQuantity[3] = sfQuantity[3] + 1;
+        }
+        else if (rxPower > *(gwSensitivity+4))
+        {
+            mac->SetDataRate(1);
+            sfQuantity[4] = sfQuantity[4] + 1;
+        }
+        else if (rxPower > *(gwSensitivity+5))
+        {
+            mac->SetDataRate(0);
+            sfQuantity[5] = sfQuantity[5] + 1;
+        }
+        else // Device is out of range. Assign SF12.
+        {
+            mac->SetDataRate(0);
+            sfQuantity[6] = sfQuantity[6] + 1;
+        }
+    } // end loop on nodes
+
+    return sfQuantity;
+}                                                                         
+
 std::vector<int>
 LorawanMacHelper::SetSpreadingFactorsGivenDistribution(NodeContainer endDevices,
                                                        NodeContainer gateways,

@@ -140,7 +140,17 @@ class LorawanMacHelper
     // Thiago Allisson: Setar SF baseado na sensibilidade do GW
     static std::vector<int> SetSpreadingFactorsUpBasedOnGWSens(NodeContainer endDevices,
                                                                NodeContainer gateways,
-                                                               Ptr<LoraChannel> channel);                                                  
+                                                               Ptr<LoraChannel> channel);
+
+    // Thiago Allisson: Criando C-SFA (Closest-SFA)                                      
+    static std::vector<int> CSFA(NodeContainer endDevices,
+                                 NodeContainer gateways,
+                                 Ptr<LoraChannel> channel);
+
+    // Thiago Allisson: Criando CE-SFA (Capture Effect-SFA) default                                                                       
+    static std::vector<int> CeSFA(NodeContainer endDevices,
+                                 NodeContainer gateways,
+                                 Ptr<LoraChannel> channel);
 
     /**
      * Randomly initialize the end devices' data rate parameter according to the given
