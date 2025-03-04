@@ -137,6 +137,11 @@ class LorawanMacHelper
                                                   NodeContainer gateways,
                                                   Ptr<LoraChannel> channel);
 
+    // Thiago Allisson: Setar SF baseado na sensibilidade do GW
+    static std::vector<int> SetSpreadingFactorsUpBasedOnGWSens(NodeContainer endDevices,
+                                                               NodeContainer gateways,
+                                                               Ptr<LoraChannel> channel);                                                  
+
     /**
      * Randomly initialize the end devices' data rate parameter according to the given
      * distribution.
