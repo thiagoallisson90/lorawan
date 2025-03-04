@@ -119,6 +119,14 @@ SimpleGatewayLoraPhy::StartReceive(Ptr<Packet> packet,
     // Fire the trace source
     m_phyRxBeginTrace(packet);
 
+    // Thiago Allisson: Manter rssi de todos os pacotes
+    // Inicio
+    LoraTag tag;
+    packet->RemovePacketTag(tag);
+    tag.SetReceivePower(rxPowerDbm);
+    packet->AddPacketTag(tag);
+    // Fim
+
     if (m_isTransmitting)
     {
         // If we get to this point, there are no demodulators we can use
