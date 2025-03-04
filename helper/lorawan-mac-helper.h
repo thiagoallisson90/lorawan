@@ -24,6 +24,18 @@ namespace ns3
 namespace lorawan
 {
 
+// Thiago Allisson: Add struct SfAndPr
+struct SfAndPr
+{
+  int m_sf;
+  double m_pr;
+
+  SfAndPr(int sf, double pr) :
+    m_sf(sf), m_pr(pr)
+  {
+  }
+};
+
 /**
  * \ingroup lorawan
  *
