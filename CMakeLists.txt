@@ -18,6 +18,8 @@ set(source_files
     model/logical-lora-channel-helper.cc
     model/periodic-sender.cc
     model/one-shot-sender.cc
+    model/lora-application.cc
+    model/poisson-sender.cc
     model/forwarder.cc
     model/lorawan-mac-header.cc
     model/lora-frame-header.cc
@@ -25,6 +27,7 @@ set(source_files
     model/lora-device-address.cc
     model/lora-device-address-generator.cc
     model/lora-tag.cc
+    model/app-tag.cc
     model/network-server.cc
     model/network-status.cc
     model/network-controller.cc
@@ -68,6 +71,8 @@ set(header_files
     model/logical-lora-channel-helper.h
     model/periodic-sender.h
     model/one-shot-sender.h
+    model/lora-application.h
+    model/poisson-sender.h
     model/forwarder.h
     model/lorawan-mac-header.h
     model/lora-frame-header.h
@@ -75,6 +80,7 @@ set(header_files
     model/lora-device-address.h
     model/lora-device-address-generator.h
     model/lora-tag.h
+    model/app-tag.h
     model/network-server.h
     model/network-status.h
     model/network-controller.h

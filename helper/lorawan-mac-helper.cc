@@ -685,10 +685,11 @@ LorawanMacHelper::SetSpreadingFactorsUpBasedOnGWSens(NodeContainer endDevices,
 } //  end function
 
 
-static std::vector<int> CSFA(NodeContainer endDevices,
+std::vector<int>
+LorawanMacHelper::CSFA(NodeContainer endDevices,
                              NodeContainer gateways,
                              Ptr<LoraChannel> channel,
-                             bool useGwSens=false)
+                             bool useGwSens)
 {
     NS_LOG_FUNCTION_NOARGS();
 
@@ -780,10 +781,11 @@ static std::vector<int> CSFA(NodeContainer endDevices,
 }  
 
 // ToDo
-static std::vector<int> CeSFA(NodeContainer endDevices,
+std::vector<int>
+LorawanMacHelper::CeSFA(NodeContainer endDevices,
                               NodeContainer gateways,
                               Ptr<LoraChannel> channel,
-                              bool useGwSens=false)
+                              bool useGwSens)
 {
     NS_LOG_FUNCTION_NOARGS();
 
@@ -893,19 +895,6 @@ static std::vector<int> CeSFA(NodeContainer endDevices,
     std::sort(vecSf11.begin(), vecSf11.end(), comparePerPr);
     std::sort(vecSf12.begin(), vecSf12.end(), comparePerPr);
 
-    std::vector<int> newSfQuantity(6, 0);
-    for (size_t i = 0; i < sfQuantity.size(); i++)
-    {
-        if (i < 6)
-        {
-            newSfQuantity[i] = sfQuantity[i];
-        }
-        else 
-        {
-            newSfQuantity[5] += sfQuantity[i];
-        }
-    }
-
     for (int i = 0; i < vecSf8.size() * 0.03; i++)
     {
         EdAndPr data = vecSf8[i];
@@ -915,8 +904,8 @@ static std::vector<int> CeSFA(NodeContainer endDevices,
         Ptr<EndDeviceLorawanMac> mac = dev->GetMac()->GetObject<EndDeviceLorawanMac>();
         mac->SetDataRate(5);
 
-        newSfQuantity[0]++;
-        newSfQuantity[1]--;
+        sfQuantity[0]++;
+        sfQuantity[1]--;
     }
 
     for (int i = 0; i < vecSf9.size() * 0.03; i++)
@@ -928,8 +917,8 @@ static std::vector<int> CeSFA(NodeContainer endDevices,
         Ptr<EndDeviceLorawanMac> mac = dev->GetMac()->GetObject<EndDeviceLorawanMac>();
         mac->SetDataRate(4);
 
-        newSfQuantity[1]++;
-        newSfQuantity[2]--;
+        sfQuantity[1]++;
+        sfQuantity[2]--;
     }
 
     for (int i = 0; i < vecSf10.size() * 0.05; i++)
@@ -941,8 +930,8 @@ static std::vector<int> CeSFA(NodeContainer endDevices,
         Ptr<EndDeviceLorawanMac> mac = dev->GetMac()->GetObject<EndDeviceLorawanMac>();
         mac->SetDataRate(3);
 
-        newSfQuantity[2]++;
-        newSfQuantity[3]--;
+        sfQuantity[2]++;
+        sfQuantity[3]--;
     }
 
     for (int i = 0; i < vecSf11.size() * 0.05; i++)
@@ -954,8 +943,8 @@ static std::vector<int> CeSFA(NodeContainer endDevices,
         Ptr<EndDeviceLorawanMac> mac = dev->GetMac()->GetObject<EndDeviceLorawanMac>();
         mac->SetDataRate(2);
 
-        newSfQuantity[3]++;
-        newSfQuantity[4]--;
+        sfQuantity[3]++;
+        sfQuantity[4]--;
     }
 
     for (int i = 0; i < vecSf12.size() * 0.05; i++)
@@ -967,8 +956,15 @@ static std::vector<int> CeSFA(NodeContainer endDevices,
         Ptr<EndDeviceLorawanMac> mac = dev->GetMac()->GetObject<EndDeviceLorawanMac>();
         mac->SetDataRate(1);
 
-        newSfQuantity[4]++;
-        newSfQuantity[5]--;
+        sfQuantity[4]++;
+        if (sfQuantity[5] > 0)
+        {
+            sfQuantity[5]--;
+        }
+        else 
+        {
+            sfQuantity[6]--;
+        }
     }
 
     vecSf8.clear();

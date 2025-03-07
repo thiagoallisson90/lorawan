@@ -134,7 +134,7 @@ CorrelatedShadowingPropagationLossModel::ShadowingMap::ShadowingMap()
     // by the GetLoss function. Here, we only create the normal random variable.
     m_shadowingValue = CreateObject<NormalRandomVariable>();
     m_shadowingValue->SetAttribute("Mean", DoubleValue(0.0));
-    m_shadowingValue->SetAttribute("Variance", DoubleValue(16.0));
+    m_shadowingValue->SetAttribute("Variance", DoubleValue(16.0)); // Padrão é 16.0 dB
 }
 
 CorrelatedShadowingPropagationLossModel::ShadowingMap::~ShadowingMap()
