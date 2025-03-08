@@ -28,6 +28,7 @@ namespace lorawan
  */
 class AdrComponent : public NetworkControllerComponent
 {
+  public:
     /**
      * Available policies for combining radio metrics in packet history.
      */
@@ -37,8 +38,7 @@ class AdrComponent : public NetworkControllerComponent
         MAXIMUM,
         MINIMUM,
     };
-
-  public:
+    
     /**
      *  Register this type.
      *  \return The object TypeId.
