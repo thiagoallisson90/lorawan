@@ -31,9 +31,10 @@ struct EdAndPr
 {
   int m_ed;
   double m_pr;
+  int m_gw;
 
-  EdAndPr(int ed, double pr) :
-    m_ed(ed), m_pr(pr)
+  EdAndPr(int ed, double pr, int gw) :
+    m_ed(ed), m_pr(pr), m_gw(gw)
   {
   }
 };
@@ -167,6 +168,19 @@ class LorawanMacHelper
                                  NodeContainer gateways,
                                  Ptr<LoraChannel> channel,
                                  bool useGwSens=false);
+
+    // Thiago Allisson: Criando U-SFA (Upper-SFA)                                
+    static std::vector<int> USFA(NodeContainer endDevices,
+                                 NodeContainer gateways,
+                                 Ptr<LoraChannel> channel,
+                                 bool useGwSens=false);
+
+    // Thiago Allisson: Criando I-TPA (I-TPA)                                
+    static std::vector<int> ITPA(NodeContainer endDevices,
+                                 NodeContainer gateways,
+                                 Ptr<LoraChannel> channel,
+                                 bool useGwSens=false);
+
 
     /**
      * Randomly initialize the end devices' data rate parameter according to the given

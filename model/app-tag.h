@@ -30,10 +30,9 @@ namespace lorawan
 enum MsgType
 {
   NONE,
-  RES_IMR,
-  COMM_IMR,
+  IMR,
   ODMR,
-  BILLING_INFO,
+  BILLING,
   RCC,
   PCC,
   AN

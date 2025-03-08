@@ -344,6 +344,9 @@ class EndDeviceLorawanMac : public LorawanMac
      */
     void AddMacCommand(Ptr<MacCommand> macCommand);
 
+    // Thiago Allisson: SetTxPower
+    void SetTxPower(double txPower);
+
   protected:
     /**
      * Structure representing the parameters that will be used in the

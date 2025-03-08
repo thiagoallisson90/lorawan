@@ -849,42 +849,42 @@ LorawanMacHelper::CeSFA(NodeContainer endDevices,
             mac->SetDataRate(4);
             sfQuantity[1] = sfQuantity[1] + 1;
 
-            vecSf8.push_back(EdAndPr(object->GetId(), rxPower));
+            vecSf8.push_back(EdAndPr(object->GetId(), rxPower, (int) bestGateway->GetId()));
         }
         else if (rxPower > *(gwSensitivity+2))
         {
             mac->SetDataRate(3);
             sfQuantity[2] = sfQuantity[2] + 1;
 
-            vecSf9.push_back(EdAndPr(object->GetId(), rxPower));
+            vecSf9.push_back(EdAndPr(object->GetId(), rxPower, (int) bestGateway->GetId()));
         }
         else if (rxPower > *(gwSensitivity+3))
         {
             mac->SetDataRate(2);
             sfQuantity[3] = sfQuantity[3] + 1;
 
-            vecSf10.push_back(EdAndPr(object->GetId(), rxPower));
+            vecSf10.push_back(EdAndPr(object->GetId(), rxPower, (int) bestGateway->GetId()));
         }
         else if (rxPower > *(gwSensitivity+4))
         {
             mac->SetDataRate(1);
             sfQuantity[4] = sfQuantity[4] + 1;
 
-            vecSf11.push_back(EdAndPr(object->GetId(), rxPower));
+            vecSf11.push_back(EdAndPr(object->GetId(), rxPower, (int) bestGateway->GetId()));
         }
         else if (rxPower > *(gwSensitivity+5))
         {
             mac->SetDataRate(0);
             sfQuantity[5] = sfQuantity[5] + 1;
 
-            vecSf12.push_back(EdAndPr(object->GetId(), rxPower));
+            vecSf12.push_back(EdAndPr(object->GetId(), rxPower, (int) bestGateway->GetId()));
         }
         else // Device is out of range. Assign SF12.
         {
             mac->SetDataRate(0);
             sfQuantity[6] = sfQuantity[6] + 1;
 
-            vecSf12.push_back(EdAndPr(object->GetId(), rxPower));
+            vecSf12.push_back(EdAndPr(object->GetId(), rxPower, (int) bestGateway->GetId()));
         }
     } // end loop on nodes
 
@@ -975,6 +975,524 @@ LorawanMacHelper::CeSFA(NodeContainer endDevices,
 
     return sfQuantity;
 }
+
+std::vector<int> 
+LorawanMacHelper::USFA(NodeContainer endDevices,
+                      NodeContainer gateways,
+                      Ptr<LoraChannel> channel,
+                      bool useGwSens)
+{
+    NS_LOG_FUNCTION_NOARGS();
+
+    std::vector<EdAndPr> vecSf7;
+    std::vector<EdAndPr> vecSf8;
+    std::vector<EdAndPr> vecSf9;
+    std::vector<EdAndPr> vecSf10;
+    std::vector<EdAndPr> vecSf11;
+
+    std::vector<int> sfQuantity(7, 0);
+    for (auto j = endDevices.Begin(); j != endDevices.End(); ++j)
+    {
+        Ptr<Node> object = *j;
+        Ptr<MobilityModel> position = object->GetObject<MobilityModel>();
+        NS_ASSERT(position);
+        Ptr<NetDevice> netDevice = object->GetDevice(0);
+        Ptr<LoraNetDevice> loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+        NS_ASSERT(loraNetDevice);
+        Ptr<ClassAEndDeviceLorawanMac> mac =
+            DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+        NS_ASSERT(mac);
+
+        // Try computing the distance from each gateway and find the best one
+        Ptr<Node> bestGateway = gateways.Get(0);
+        Ptr<MobilityModel> bestGatewayPosition = bestGateway->GetObject<MobilityModel>();
+
+        // Assume devices transmit at 14 dBm
+        double highestRxPower = channel->GetRxPower(14, position, bestGatewayPosition);
+
+        for (auto currentGw = gateways.Begin() + 1; currentGw != gateways.End(); ++currentGw)
+        {
+            // Compute the power received from the current gateway
+            Ptr<Node> curr = *currentGw;
+            Ptr<MobilityModel> currPosition = curr->GetObject<MobilityModel>();
+            double currentRxPower = channel->GetRxPower(14, position, currPosition); // dBm
+
+            if (currentRxPower > highestRxPower)
+            {
+                bestGateway = curr;
+                bestGatewayPosition = currPosition;
+                highestRxPower = currentRxPower;
+            }
+        }
+
+        // NS_LOG_DEBUG ("Rx Power: " << highestRxPower);
+        double rxPower = highestRxPower;
+
+        // Get the Gw sensitivity
+        Ptr<NetDevice> gatewayNetDevice = bestGateway->GetDevice (0);
+        Ptr<LoraNetDevice> gatewayLoraNetDevice = DynamicCast<LoraNetDevice>(gatewayNetDevice);
+        Ptr<GatewayLoraPhy> gatewayPhy = DynamicCast<GatewayLoraPhy> (gatewayLoraNetDevice->GetPhy ()); 
+        const double *gwSensitivity = gatewayPhy->sensitivity; // gateway-lora-phy.cc => loc 131
+
+        if(rxPower > *gwSensitivity)
+        {
+            mac->SetDataRate(5);
+            sfQuantity[0] = sfQuantity[0] + 1;
+
+            vecSf7.push_back(EdAndPr(object->GetId(), rxPower, (int) bestGateway->GetId()));
+        }
+        else if (rxPower > *(gwSensitivity+1))
+        {
+            mac->SetDataRate(4);
+            sfQuantity[1] = sfQuantity[1] + 1;
+
+            vecSf8.push_back(EdAndPr(object->GetId(), rxPower, (int) bestGateway->GetId()));
+        }
+        else if (rxPower > *(gwSensitivity+2))
+        {
+            mac->SetDataRate(3);
+            sfQuantity[2] = sfQuantity[2] + 1;
+
+            vecSf9.push_back(EdAndPr(object->GetId(), rxPower, (int) bestGateway->GetId()));
+        }
+        else if (rxPower > *(gwSensitivity+3))
+        {
+            mac->SetDataRate(2);
+            sfQuantity[3] = sfQuantity[3] + 1;
+
+            vecSf10.push_back(EdAndPr(object->GetId(), rxPower, (int) bestGateway->GetId()));
+        }
+        else if (rxPower > *(gwSensitivity+4))
+        {
+            mac->SetDataRate(1);
+            sfQuantity[4] = sfQuantity[4] + 1;
+
+            vecSf11.push_back(EdAndPr(object->GetId(), rxPower, (int) bestGateway->GetId()));
+        }
+        else if (rxPower > *(gwSensitivity+5))
+        {
+            mac->SetDataRate(0);
+            sfQuantity[5] = sfQuantity[5] + 1;
+        }
+        else // Device is out of range. Assign SF12.
+        {
+            mac->SetDataRate(0);
+            sfQuantity[6] = sfQuantity[6] + 1;
+        }
+    } // end loop on nodes
+
+    /*for (auto sf : sfQuantity)
+    {
+        std::cout << sf << " ";
+    }
+    std::cout << std::endl;*/
+
+    Ptr<UniformRandomVariable> m_intervalProb = CreateObject<UniformRandomVariable>();
+    
+    // From SF7 To SF10
+    sfQuantity[0]--;
+    sfQuantity[3]++;
+
+    uint32_t i = m_intervalProb->GetInteger(0, (uint32_t) vecSf7.size());
+    Ptr<Node> node = endDevices.Get(vecSf7[i].m_ed);
+    vecSf7.erase(vecSf7.begin() + i);
+    Ptr<NetDevice> netDevice = node->GetDevice(0);
+    Ptr<LoraNetDevice> loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+    Ptr<ClassAEndDeviceLorawanMac> mac =
+        DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+    mac->SetDataRate(2);
+
+    // From SF8 To SF11
+    sfQuantity[1]--;
+    sfQuantity[4]++;
+
+    i = m_intervalProb->GetInteger(0, (uint32_t) vecSf8.size());
+    node = endDevices.Get(vecSf8[i].m_ed);
+    vecSf8.erase(vecSf8.begin() + i);
+    netDevice = node->GetDevice(0);
+    loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+    mac = DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+    mac->SetDataRate(1);
+
+    // From SF9 To SF12
+    sfQuantity[2]--;
+    sfQuantity[5]++;
+
+    i = m_intervalProb->GetInteger(0, (uint32_t) vecSf9.size());
+    node = endDevices.Get(vecSf9[i].m_ed);
+    vecSf9.erase(vecSf9.begin() + i);
+    netDevice = node->GetDevice(0);
+    loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+    mac = DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+    mac->SetDataRate(0);
+
+    vecSf7.clear();
+    vecSf8.clear();
+    vecSf9.clear();
+    vecSf10.clear();
+    vecSf11.clear();
+
+    /*for (auto sf : sfQuantity)
+    {
+        std::cout << sf << " ";
+    }
+    std::cout << std::endl;*/
+
+    return sfQuantity;
+}  
+
+std::vector<int> 
+LorawanMacHelper::ITPA(NodeContainer endDevices,
+                      NodeContainer gateways,
+                      Ptr<LoraChannel> channel,
+                      bool useGwSens)
+{
+    NS_LOG_FUNCTION_NOARGS();
+
+    std::vector<EdAndPr> vecSF7;
+    std::vector<EdAndPr> vecSF8;
+    std::vector<EdAndPr> vecSF9;
+    std::vector<EdAndPr> vecSF10;
+    std::vector<EdAndPr> vecSF11;
+    std::vector<EdAndPr> vecSF12;
+
+    std::vector<int> sfQuantity(7, 0);
+    for (auto j = endDevices.Begin(); j != endDevices.End(); ++j)
+    {
+        Ptr<Node> object = *j;
+        Ptr<MobilityModel> position = object->GetObject<MobilityModel>();
+        NS_ASSERT(position);
+        Ptr<NetDevice> netDevice = object->GetDevice(0);
+        Ptr<LoraNetDevice> loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+        NS_ASSERT(loraNetDevice);
+        Ptr<ClassAEndDeviceLorawanMac> mac =
+            DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+        NS_ASSERT(mac);
+
+        // Try computing the distance from each gateway and find the best one
+        Ptr<Node> bestGateway = gateways.Get(0);
+        Ptr<MobilityModel> bestGatewayPosition = bestGateway->GetObject<MobilityModel>();
+
+        // Assume devices transmit at 14 dBm
+        double highestRxPower = channel->GetRxPower(14, position, bestGatewayPosition);
+
+        for (auto currentGw = gateways.Begin() + 1; currentGw != gateways.End(); ++currentGw)
+        {
+            // Compute the power received from the current gateway
+            Ptr<Node> curr = *currentGw;
+            Ptr<MobilityModel> currPosition = curr->GetObject<MobilityModel>();
+            double currentRxPower = channel->GetRxPower(14, position, currPosition); // dBm
+
+            if (currentRxPower > highestRxPower)
+            {
+                bestGateway = curr;
+                bestGatewayPosition = currPosition;
+                highestRxPower = currentRxPower;
+            }
+        }
+
+        // NS_LOG_DEBUG ("Rx Power: " << highestRxPower);
+        double rxPower = highestRxPower;
+
+        // Get the Gw sensitivity
+        Ptr<NetDevice> gatewayNetDevice = bestGateway->GetDevice (0);
+        Ptr<LoraNetDevice> gatewayLoraNetDevice = DynamicCast<LoraNetDevice>(gatewayNetDevice);
+        Ptr<GatewayLoraPhy> gatewayPhy = DynamicCast<GatewayLoraPhy> (gatewayLoraNetDevice->GetPhy ()); 
+        const double *gwSensitivity = gatewayPhy->sensitivity; // gateway-lora-phy.cc => loc 131
+
+        if(rxPower > *gwSensitivity)
+        {
+            mac->SetDataRate(5);
+            sfQuantity[0] = sfQuantity[0] + 1;
+
+            vecSF7.push_back(EdAndPr(object->GetId(), rxPower, bestGateway->GetId()));
+        }
+        else if (rxPower > *(gwSensitivity+1))
+        {
+            mac->SetDataRate(4);
+            sfQuantity[1] = sfQuantity[1] + 1;
+
+            vecSF8.push_back(EdAndPr(object->GetId(), rxPower, bestGateway->GetId()));
+        }
+        else if (rxPower > *(gwSensitivity+2))
+        {
+            mac->SetDataRate(3);
+            sfQuantity[2] = sfQuantity[2] + 1;
+
+            vecSF9.push_back(EdAndPr(object->GetId(), rxPower, bestGateway->GetId()));
+        }
+        else if (rxPower > *(gwSensitivity+3))
+        {
+            mac->SetDataRate(2);
+            sfQuantity[3] = sfQuantity[3] + 1;
+
+            vecSF10.push_back(EdAndPr(object->GetId(), rxPower, bestGateway->GetId()));
+        }
+        else if (rxPower > *(gwSensitivity+4))
+        {
+            mac->SetDataRate(1);
+            sfQuantity[4] = sfQuantity[4] + 1;
+
+            vecSF11.push_back(EdAndPr(object->GetId(), rxPower, bestGateway->GetId()));
+        }
+        else if (rxPower > *(gwSensitivity+5))
+        {
+            mac->SetDataRate(0);
+            sfQuantity[5] = sfQuantity[5] + 1;
+
+            vecSF12.push_back(EdAndPr(object->GetId(), rxPower, bestGateway->GetId()));
+        }
+        else // Device is out of range. Assign SF12.
+        {
+            mac->SetDataRate(0);
+            sfQuantity[6] = sfQuantity[6] + 1;
+
+            vecSF12.push_back(EdAndPr(object->GetId(), rxPower, bestGateway->GetId()));
+        }
+    } // end loop on nodes
+
+    // Ordenar de Forma Decrescente SFs por Potência Recebida pelo GWs
+    std::sort(vecSF7.begin(), vecSF7.end(), comparePerPr);
+    std::sort(vecSF8.begin(), vecSF8.end(), comparePerPr);
+    std::sort(vecSF9.begin(), vecSF9.end(), comparePerPr);
+    std::sort(vecSF10.begin(), vecSF10.end(), comparePerPr);
+    std::sort(vecSF11.begin(), vecSF11.end(), comparePerPr);
+    std::sort(vecSF12.begin(), vecSF12.end(), comparePerPr);
+
+    // -130.0, -132.5, -135.0, -137.5, -140.0, -142.5
+    // SF7
+    if (vecSF7.size() > 0)
+    {
+        auto lowestSF7 = vecSF7.back();
+        Ptr<MobilityModel> position = endDevices.Get(lowestSF7.m_ed)->GetObject<MobilityModel>();
+        Ptr<MobilityModel> bestGatewayPosition = 
+            gateways.Get(lowestSF7.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
+
+        int txPower = 12;
+        while (txPower > 2)
+        {
+            double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
+
+            if (rxPower <= -130)
+            {
+                txPower += 2;
+                break;
+            }
+
+            txPower -= 2;
+        }
+
+        /*std::cout << "[-130] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
+        std::cout << "SF7, txPower = " << txPower << " dBm" << std::endl;*/
+        if (txPower != 14)
+        {
+            for (size_t index = 0; index < vecSF7.size(); index++)
+            {
+                Ptr<Node> node = endDevices.Get(index);
+                Ptr<NetDevice> netDevice = node->GetDevice(0);
+                Ptr<LoraNetDevice> loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+                mac->SetTxPower(txPower);
+            }
+        }
+    }
+
+    if (vecSF8.size() > 0)
+    {
+        auto lowestSF8 = vecSF8.back();
+        Ptr<MobilityModel> position = endDevices.Get(lowestSF8.m_ed)->GetObject<MobilityModel>();
+        Ptr<MobilityModel> bestGatewayPosition = 
+            gateways.Get(lowestSF8.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
+
+        int txPower = 12;
+        while (txPower > 2)
+        {
+            double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
+
+            if (rxPower <= -132.5)
+            {
+                txPower += 2;
+                break;
+            }
+
+            txPower -= 2;
+        }
+
+        /*std::cout << "[-132.5] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
+        std::cout << "SF8, txPower = " << txPower << " dBm" << std::endl;*/
+        if (txPower != 14)
+        {
+            for (size_t index = 0; index < vecSF8.size(); index++)
+            {
+                Ptr<Node> node = endDevices.Get(index);
+                Ptr<NetDevice> netDevice = node->GetDevice(0);
+                Ptr<LoraNetDevice> loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+                mac->SetTxPower(txPower);
+            }
+        }
+    }
+
+    if (vecSF9.size() > 0)
+    {
+        auto lowestSF9 = vecSF9.back();
+        Ptr<MobilityModel> position = endDevices.Get(lowestSF9.m_ed)->GetObject<MobilityModel>();
+        Ptr<MobilityModel> bestGatewayPosition = 
+            gateways.Get(lowestSF9.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
+
+        int txPower = 12;
+        while (txPower > 2)
+        {
+            double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
+
+            if (rxPower <= -135.0)
+            {
+                txPower += 2;
+                break;
+            }
+
+            txPower -= 2;
+        }
+
+        /*std::cout << "[-135] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
+        std::cout << "SF9, txPower = " << txPower << " dBm" << std::endl;*/
+        if (txPower != 14)
+        {
+            for (size_t index = 0; index < vecSF9.size(); index++)
+            {
+                Ptr<Node> node = endDevices.Get(index);
+                Ptr<NetDevice> netDevice = node->GetDevice(0);
+                Ptr<LoraNetDevice> loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+                mac->SetTxPower(txPower);
+            }
+        }
+    }
+
+    if (vecSF10.size() > 0)
+    {
+        auto lowestSF10 = vecSF10.back();
+        Ptr<MobilityModel> position = endDevices.Get(lowestSF10.m_ed)->GetObject<MobilityModel>();
+        Ptr<MobilityModel> bestGatewayPosition = 
+            gateways.Get(lowestSF10.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
+
+        int txPower = 12;
+        while (txPower > 2)
+        {
+            double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
+
+            if (rxPower <= -137.5)
+            {
+                txPower += 2;
+                break;
+            }
+
+            txPower -= 2;
+        }
+
+        /*std::cout << "[-137.5] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
+        std::cout << "SF10, txPower = " << txPower << " dBm" << std::endl;*/
+        if (txPower != 14)
+        {
+            for (size_t index = 0; index < vecSF10.size(); index++)
+            {
+                Ptr<Node> node = endDevices.Get(index);
+                Ptr<NetDevice> netDevice = node->GetDevice(0);
+                Ptr<LoraNetDevice> loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+                mac->SetTxPower(txPower);
+            }
+        }
+    }
+
+    if (vecSF11.size() > 0)
+    {
+        auto lowestSF11 = vecSF11.back();
+        Ptr<MobilityModel> position = endDevices.Get(lowestSF11.m_ed)->GetObject<MobilityModel>();
+        Ptr<MobilityModel> bestGatewayPosition = 
+            gateways.Get(lowestSF11.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
+
+        int txPower = 12;
+        while (txPower > 2)
+        {
+            double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
+
+            if (rxPower <= -140.0)
+            {
+                txPower += 2;
+                break;
+            }
+
+            txPower -= 2;
+        }
+
+        /*std::cout << "[-140] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
+        std::cout << "SF11, txPower = " << txPower << " dBm" << std::endl;*/
+        if (txPower != 14)
+        {
+            for (size_t index = 0; index < vecSF11.size(); index++)
+            {
+                Ptr<Node> node = endDevices.Get(index);
+                Ptr<NetDevice> netDevice = node->GetDevice(0);
+                Ptr<LoraNetDevice> loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+                mac->SetTxPower(txPower);
+            }
+        }
+    }
+
+    if (vecSF12.size() > 0)
+    {
+        auto lowestSF12 = vecSF12.back();
+        Ptr<MobilityModel> position = endDevices.Get(lowestSF12.m_ed)->GetObject<MobilityModel>();
+        Ptr<MobilityModel> bestGatewayPosition = 
+            gateways.Get(lowestSF12.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
+
+        int txPower = 12;
+        while (txPower > 2)
+        {
+            double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
+
+            if (rxPower <= -142.5)
+            {
+                txPower += 2;
+                break;
+            }
+
+            txPower -= 2;
+        }
+
+        /*std::cout << "[-142.5] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
+        std::cout << "SF12, txPower = " << txPower << " dBm" << std::endl;*/
+        if (txPower != 14)
+        {
+            for (size_t index = 0; index < vecSF12.size(); index++)
+            {
+                Ptr<Node> node = endDevices.Get(index);
+                Ptr<NetDevice> netDevice = node->GetDevice(0);
+                Ptr<LoraNetDevice> loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+                mac->SetTxPower(txPower);
+            }
+        }
+    }
+
+    vecSF7.clear();
+    vecSF8.clear();
+    vecSF9.clear();
+    vecSF10.clear();
+    vecSF11.clear();
+    vecSF12.clear();
+
+    return sfQuantity;
+}
+
 
 std::vector<int>
 LorawanMacHelper::SetSpreadingFactorsGivenDistribution(NodeContainer endDevices,

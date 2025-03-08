@@ -917,5 +917,11 @@ EndDeviceLorawanMac::GetTransmissionPower()
 {
     return m_txPower;
 }
+
+void
+EndDeviceLorawanMac::SetTxPower(double txPower)
+{
+    m_txPower = txPower;
+}
 } // namespace lorawan
 } // namespace ns3
