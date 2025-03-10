@@ -25,6 +25,12 @@ bool comparePerPr(const EdAndPr& a, const EdAndPr& b)
   return a.m_pr > b.m_pr;
 }
 
+// Thiago Allisson
+double RxPowerToSNR(double transmissionPower, double bandwidth = 125e3, double NF = 6)
+{
+  return transmissionPower + 174 - 10 * log10(bandwidth) - NF;
+}
+
 NS_LOG_COMPONENT_DEFINE("LorawanMacHelper");
 
 LorawanMacHelper::LorawanMacHelper()
@@ -1252,38 +1258,43 @@ LorawanMacHelper::ITPA(NodeContainer endDevices,
     } // end loop on nodes
 
     // Ordenar de Forma Decrescente SFs por Potência Recebida pelo GWs
-    std::sort(vecSF7.begin(), vecSF7.end(), comparePerPr);
+    /*std::sort(vecSF7.begin(), vecSF7.end(), comparePerPr);
     std::sort(vecSF8.begin(), vecSF8.end(), comparePerPr);
     std::sort(vecSF9.begin(), vecSF9.end(), comparePerPr);
     std::sort(vecSF10.begin(), vecSF10.end(), comparePerPr);
     std::sort(vecSF11.begin(), vecSF11.end(), comparePerPr);
-    std::sort(vecSF12.begin(), vecSF12.end(), comparePerPr);
+    std::sort(vecSF12.begin(), vecSF12.end(), comparePerPr);*/
 
     // -130.0, -132.5, -135.0, -137.5, -140.0, -142.5
     // SF7
-    if (vecSF7.size() > 0)
+    /*if (vecSF7.size() > 0)
     {
         auto lowestSF7 = vecSF7.back();
+
+        double sumOfRssi = 0;
+        for (auto sf: vecSF7)
+        {
+            sumOfRssi += sf.m_pr;
+        }
+        sumOfRssi /= (double) vecSF7.size();
+
         Ptr<MobilityModel> position = endDevices.Get(lowestSF7.m_ed)->GetObject<MobilityModel>();
         Ptr<MobilityModel> bestGatewayPosition = 
             gateways.Get(lowestSF7.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
 
-        int txPower = 12;
+        int txPower = 14;
         while (txPower > 2)
         {
+            txPower -= 1;
             double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
 
             if (rxPower <= -130)
             {
-                txPower += 2;
+                txPower += 1;
                 break;
             }
-
-            txPower -= 2;
         }
 
-        /*std::cout << "[-130] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
-        std::cout << "SF7, txPower = " << txPower << " dBm" << std::endl;*/
         if (txPower != 14)
         {
             for (size_t index = 0; index < vecSF7.size(); index++)
@@ -1296,31 +1307,28 @@ LorawanMacHelper::ITPA(NodeContainer endDevices,
                 mac->SetTxPower(txPower);
             }
         }
-    }
+    }*/
 
-    if (vecSF8.size() > 0)
+    /*if (vecSF8.size() > 0)
     {
         auto lowestSF8 = vecSF8.back();
         Ptr<MobilityModel> position = endDevices.Get(lowestSF8.m_ed)->GetObject<MobilityModel>();
         Ptr<MobilityModel> bestGatewayPosition = 
             gateways.Get(lowestSF8.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
 
-        int txPower = 12;
-        while (txPower > 2)
+        int txPower = 14;
+        while (txPower > 10)
         {
+            txPower -= 1;
             double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
 
             if (rxPower <= -132.5)
             {
-                txPower += 2;
+                txPower += 1;
                 break;
             }
-
-            txPower -= 2;
         }
 
-        /*std::cout << "[-132.5] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
-        std::cout << "SF8, txPower = " << txPower << " dBm" << std::endl;*/
         if (txPower != 14)
         {
             for (size_t index = 0; index < vecSF8.size(); index++)
@@ -1342,22 +1350,19 @@ LorawanMacHelper::ITPA(NodeContainer endDevices,
         Ptr<MobilityModel> bestGatewayPosition = 
             gateways.Get(lowestSF9.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
 
-        int txPower = 12;
-        while (txPower > 2)
+        int txPower = 14;
+        while (txPower > 10)
         {
+            txPower -= 1;
             double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
 
             if (rxPower <= -135.0)
             {
-                txPower += 2;
+                txPower += 1;
                 break;
             }
-
-            txPower -= 2;
         }
 
-        /*std::cout << "[-135] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
-        std::cout << "SF9, txPower = " << txPower << " dBm" << std::endl;*/
         if (txPower != 14)
         {
             for (size_t index = 0; index < vecSF9.size(); index++)
@@ -1379,22 +1384,19 @@ LorawanMacHelper::ITPA(NodeContainer endDevices,
         Ptr<MobilityModel> bestGatewayPosition = 
             gateways.Get(lowestSF10.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
 
-        int txPower = 12;
-        while (txPower > 2)
+        int txPower = 14;
+        while (txPower > 10)
         {
+            txPower -= 1;
             double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
 
             if (rxPower <= -137.5)
             {
-                txPower += 2;
+                txPower += 1;
                 break;
             }
-
-            txPower -= 2;
         }
 
-        /*std::cout << "[-137.5] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
-        std::cout << "SF10, txPower = " << txPower << " dBm" << std::endl;*/
         if (txPower != 14)
         {
             for (size_t index = 0; index < vecSF10.size(); index++)
@@ -1416,22 +1418,19 @@ LorawanMacHelper::ITPA(NodeContainer endDevices,
         Ptr<MobilityModel> bestGatewayPosition = 
             gateways.Get(lowestSF11.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
 
-        int txPower = 12;
-        while (txPower > 2)
+        int txPower = 14;
+        while (txPower > 10)
         {
+            txPower -= 1;
             double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
 
             if (rxPower <= -140.0)
             {
-                txPower += 2;
+                txPower += 1;
                 break;
             }
-
-            txPower -= 2;
         }
 
-        /*std::cout << "[-140] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
-        std::cout << "SF11, txPower = " << txPower << " dBm" << std::endl;*/
         if (txPower != 14)
         {
             for (size_t index = 0; index < vecSF11.size(); index++)
@@ -1453,22 +1452,19 @@ LorawanMacHelper::ITPA(NodeContainer endDevices,
         Ptr<MobilityModel> bestGatewayPosition = 
             gateways.Get(lowestSF12.m_gw - endDevices.GetN())->GetObject<MobilityModel>();
 
-        int txPower = 12;
-        while (txPower > 2)
+        int txPower = 14;
+        while (txPower > 10)
         {
+            txPower -= 1;
             double rxPower = channel->GetRxPower(txPower, position, bestGatewayPosition);
 
             if (rxPower <= -142.5)
             {
-                txPower += 2;
+                txPower += 1;
                 break;
             }
-
-            txPower -= 2;
         }
 
-        /*std::cout << "[-142.5] Rx for Tx equals to 12 dBm = " << channel->GetRxPower(12, position, bestGatewayPosition) << std::endl;
-        std::cout << "SF12, txPower = " << txPower << " dBm" << std::endl;*/
         if (txPower != 14)
         {
             for (size_t index = 0; index < vecSF12.size(); index++)
@@ -1481,7 +1477,7 @@ LorawanMacHelper::ITPA(NodeContainer endDevices,
                 mac->SetTxPower(txPower);
             }
         }
-    }
+    }*/
 
     vecSF7.clear();
     vecSF8.clear();
@@ -1569,6 +1565,5 @@ LorawanMacHelper::SetSpreadingFactorsGivenDistribution(NodeContainer endDevices,
     return sfQuantity;
 
 } //  end function
-
 } // namespace lorawan
 } // namespace ns3
