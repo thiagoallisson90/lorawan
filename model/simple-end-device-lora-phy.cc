@@ -30,7 +30,11 @@ SimpleEndDeviceLoraPhy::GetTypeId()
     static TypeId tid = TypeId("ns3::SimpleEndDeviceLoraPhy")
                             .SetParent<EndDeviceLoraPhy>()
                             .SetGroupName("lorawan")
-                            .AddConstructor<SimpleEndDeviceLoraPhy>();
+                            .AddConstructor<SimpleEndDeviceLoraPhy>()
+                            .AddTraceSource("ToA",
+                                            "Trace time on air to sent packets",
+                                            MakeTraceSourceAccessor(&SimpleEndDeviceLoraPhy::m_toa),
+                                            "ns3::Packet::TracedCallback");
 
     return tid;
 }
@@ -64,6 +68,9 @@ SimpleEndDeviceLoraPhy::Send(Ptr<Packet> packet,
 
     // Compute the duration of the transmission
     Time duration = GetOnAirTime(packet, txParams);
+
+    // Thiago Allisson
+    m_toa(packet, duration.GetNanoSeconds(), txParams.sf);
 
     // We can send the packet: switch to the TX state
     SwitchToTx(txPowerDbm);

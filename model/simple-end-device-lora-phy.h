@@ -60,6 +60,10 @@ class SimpleEndDeviceLoraPhy : public EndDeviceLoraPhy
               double txPowerDbm) override;
 
   private:
+    /**
+     * The estimated time on air to sent packet.
+     */
+    TracedCallback<Ptr<const Packet>, double, uint8_t> m_toa;
 };
 
 } // namespace lorawan
