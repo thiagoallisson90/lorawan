@@ -39,6 +39,12 @@ class PoissonSender : public LoraApplication
     uint8_t GetMsgType() const;
     void SetMsgType(uint8_t msgType);
 
+    double GetMaxDelay() const;
+    void SetMaxDelay(double maxDelay);
+
+    bool GetDelayQoS() const;
+    void SetDelayQoS(bool delayQoS);
+
   protected:
     void DoInitialize() override;
     void DoDispose() override;
@@ -57,6 +63,10 @@ class PoissonSender : public LoraApplication
     Ptr<ExponentialRandomVariable> m_interval; //!< Random variable modeling packet inter-send time
 
     uint8_t m_msgType;
+
+    double m_maxDelay;
+
+    bool m_delayQoS;
 };
 
 } // namespace lorawan

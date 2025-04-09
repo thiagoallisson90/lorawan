@@ -44,7 +44,9 @@ PoissonSender::GetTypeId()
 }
 
 PoissonSender::PoissonSender()
-    : m_msgType(NONE)
+    : m_msgType(NONE),
+      m_maxDelay(0.0),
+      m_delayQoS(false)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -116,6 +118,34 @@ void
 PoissonSender::SetMsgType(uint8_t msgType)
 {
     m_msgType = msgType;
+}
+
+double 
+PoissonSender::GetMaxDelay() const
+{
+    return m_maxDelay;
+}
+
+void 
+PoissonSender::SetMaxDelay(double maxDelay)
+{
+    if (maxDelay > 0.0)
+    {
+        m_maxDelay = maxDelay;
+        SetDelayQoS(true);
+    }
+}
+
+bool 
+PoissonSender::GetDelayQoS() const
+{
+    return m_delayQoS;
+}
+
+void 
+PoissonSender::SetDelayQoS(bool delayQoS)
+{
+    m_delayQoS = delayQoS;
 }
 
 } // namespace lorawan

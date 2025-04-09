@@ -169,11 +169,21 @@ class LorawanMacHelper
                                  Ptr<LoraChannel> channel,
                                  bool useGwSens=false);
 
-    // Thiago Allisson: Criando U-SFA (Upper-SFA)                                
-    static std::vector<int> USFA(NodeContainer endDevices,
+    // Thiago Allisson: Criando R-SFA (Reliable-SFA)                                
+    static std::vector<int> RSFA(NodeContainer endDevices,
                                  NodeContainer gateways,
                                  Ptr<LoraChannel> channel,
                                  bool useGwSens=false);
+
+    // Thiago Allisson: Criando R-SFA+ (Reliable-SFA+)
+    static std::vector<int> RSFA_Plus(NodeContainer endDevices,
+                                      NodeContainer gateways,
+                                      Ptr<LoraChannel> channel,
+                                      std::vector<int> checkNodes,
+                                      double maxDelay=0.0,
+                                      bool useGwSens=false,
+                                      double T=600,
+                                      double pSucc=0.99);                                 
 
     // Thiago Allisson: Criando I-TPA (I-TPA)                                
     static std::vector<int> ITPA(NodeContainer endDevices,
