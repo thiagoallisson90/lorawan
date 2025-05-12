@@ -179,8 +179,8 @@ class LorawanMacHelper
     static std::vector<int> RSFA_Plus(NodeContainer endDevices,
                                       NodeContainer gateways,
                                       Ptr<LoraChannel> channel,
-                                      std::vector<int> checkNodes,
-                                      double maxDelay=0.0,
+                                      std::vector<double> maxDelays,
+                                      int nRun,
                                       bool useGwSens=false,
                                       double T=600,
                                       double pSucc=0.99);                                 

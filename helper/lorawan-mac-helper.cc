@@ -1485,8 +1485,8 @@ std::vector<int>
 LorawanMacHelper::RSFA_Plus(NodeContainer endDevices,
                             NodeContainer gateways,
                             Ptr<LoraChannel> channel,
-                            std::vector<int> checkNodes,
-                            double maxDelay,
+                            std::vector<double> maxDelays,
+                            int nRun,
                             bool useGwSens, 
                             double T,
                             double pSucc)
@@ -1584,6 +1584,8 @@ LorawanMacHelper::RSFA_Plus(NodeContainer endDevices,
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 11);
+
+            std::cout << object->GetId() << ", " << maxDelays[object->GetId()] << ", " << nRun << " SF11\n";
         }
         else if (rxPower > *(gwSensitivity+5))
         {
@@ -1616,6 +1618,15 @@ LorawanMacHelper::RSFA_Plus(NodeContainer endDevices,
     int nSF11 = NumMaxOfNodesPerSF(toas[4], T, pSucc, nFreqs);
     int nSF12 = NumMaxOfNodesPerSF(toas[5], T, pSucc, nFreqs);
 
+    /*std::cout << nSF7 << ", " << nSF8 << ", " << nSF9 << ", " << nSF10 << ", " << nSF11 << ", " << nSF12 
+            << std::endl;
+    
+    for (size_t i = 0; i < sfQuantity.size() - 2; i++)
+    {
+        std::cout << sfQuantity[i] << ", ";
+    }
+    std::cout << (sfQuantity[5] + sfQuantity[6]) << std::endl;*/
+
     Ptr<UniformRandomVariable> uniformRV = CreateObject<UniformRandomVariable>();
 
     for (uint32_t i = 0; i < gateways.GetN(); i++)
@@ -1630,15 +1641,23 @@ LorawanMacHelper::RSFA_Plus(NodeContainer endDevices,
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf8.size() < nSF8)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
-                
-                it->second.m_sf8.push_back(it->second.m_sf7[index]);
+                int nodeId = it->second.m_sf7[index];
+                while ((int) it->second.m_sf7.size() > nSF7 && toas[1] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf7.erase(it->second.m_sf7.begin() + index);   
+                }
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(4);
+                if ((int) it->second.m_sf7.size() > nSF7 && maxDelays[nodeId] > toas[1])
+                {                   
+                    it->second.m_sf8.push_back(it->second.m_sf7[index]);
 
-                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(4);
+
+                    it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf7.size() <= nSF7)
@@ -1652,31 +1671,46 @@ LorawanMacHelper::RSFA_Plus(NodeContainer endDevices,
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf9.size() < nSF9)
             {                
-
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
-                
-                it->second.m_sf9.push_back(it->second.m_sf7[index]);
+                int nodeId = it->second.m_sf7[index];
+                while ((int) it->second.m_sf7.size() > nSF7 && toas[2] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf7.erase(it->second.m_sf7.begin() + index);   
+                }
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(3);
+                if ((int) it->second.m_sf7.size() > nSF7 && maxDelays[nodeId] > toas[2])
+                {
+                    it->second.m_sf9.push_back(it->second.m_sf7[index]);
 
-                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(3);
+
+                    it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf9.size() < nSF9)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
-                
-                it->second.m_sf9.push_back(it->second.m_sf8[index]);
+                int nodeId = it->second.m_sf8[index];
+                while ((int) it->second.m_sf8.size() > nSF8 && toas[2] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf8.erase(it->second.m_sf8.begin() + index);   
+                }
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(3);
+                if ((int) it->second.m_sf8.size() > nSF8 && maxDelays[nodeId] > toas[2])
+                {
+                    it->second.m_sf9.push_back(it->second.m_sf8[index]);
 
-                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(3);
+
+                    it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf7.size() <= nSF7 && (int) it->second.m_sf8.size() <= nSF8)
@@ -1691,43 +1725,67 @@ LorawanMacHelper::RSFA_Plus(NodeContainer endDevices,
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf10.size() < nSF10)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
-                
-                it->second.m_sf10.push_back(it->second.m_sf7[index]);
+                int nodeId = it->second.m_sf7[index];
+                while ((int) it->second.m_sf7.size() > nSF7 && toas[3] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf7.erase(it->second.m_sf7.begin() + index);   
+                }
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(2);
+                if ((int) it->second.m_sf7.size() > nSF7 && maxDelays[nodeId] > toas[3])
+                {
+                    it->second.m_sf10.push_back(it->second.m_sf7[index]);
 
-                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(2);
+
+                    it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf10.size() < nSF10)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
-                
-                it->second.m_sf10.push_back(it->second.m_sf8[index]);
+                int nodeId = it->second.m_sf8[index];
+                while ((int) it->second.m_sf8.size() > nSF8 && toas[3] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf8.erase(it->second.m_sf8.begin() + index);   
+                }
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(2);
+                if ((int) it->second.m_sf8.size() > nSF8 && maxDelays[nodeId] > toas[3])
+                {                
+                    it->second.m_sf10.push_back(it->second.m_sf8[index]);
 
-                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(2);
+
+                    it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf10.size() < nSF10)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
-                
-                it->second.m_sf10.push_back(it->second.m_sf9[index]);
+                int nodeId = it->second.m_sf9[index];
+                while ((int) it->second.m_sf9.size() > nSF9 && toas[3] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf9.erase(it->second.m_sf9.begin() + index);   
+                }
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(2);
+                if ((int) it->second.m_sf9.size() > nSF9 && maxDelays[nodeId] > toas[3])
+                {
+                    it->second.m_sf10.push_back(it->second.m_sf9[index]);
 
-                it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(2);
+
+                    it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf7.size() <= nSF7 && (int) it->second.m_sf8.size() <= nSF8 
@@ -1743,57 +1801,89 @@ LorawanMacHelper::RSFA_Plus(NodeContainer endDevices,
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf11.size() < nSF11)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
-                
-                it->second.m_sf11.push_back(it->second.m_sf7[index]);
+                int nodeId = it->second.m_sf7[index];
+                while ((int) it->second.m_sf7.size() > nSF7 && toas[4] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf7.erase(it->second.m_sf7.begin() + index);   
+                }
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(1);
+                if ((int) it->second.m_sf7.size() > nSF7 && maxDelays[nodeId] > toas[4])
+                {                
+                    it->second.m_sf11.push_back(it->second.m_sf7[index]);
 
-                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(1);
+
+                    it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf11.size() < nSF11)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+                int nodeId = it->second.m_sf8[index];
+                while ((int) it->second.m_sf8.size() > nSF8 && toas[4] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf8.erase(it->second.m_sf8.begin() + index);   
+                }
                 
-                it->second.m_sf11.push_back(it->second.m_sf8[index]);
+                if ((int) it->second.m_sf8.size() > nSF8 && maxDelays[nodeId] > toas[4])
+                {
+                    it->second.m_sf11.push_back(it->second.m_sf8[index]);
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(1);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(1);
 
-                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+                    it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf11.size() < nSF11)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
+                int nodeId = it->second.m_sf9[index];
+                while ((int) it->second.m_sf9.size() > nSF9 && toas[4] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf9.erase(it->second.m_sf9.begin() + index);   
+                }
                 
-                it->second.m_sf11.push_back(it->second.m_sf9[index]);
+                if ((int) it->second.m_sf9.size() > nSF9 && maxDelays[nodeId] > toas[4])
+                {
+                    it->second.m_sf11.push_back(it->second.m_sf9[index]);
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(1);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(1);
 
-                it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+                    it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf10.size() > nSF10 && (int) it->second.m_sf11.size() < nSF11)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size() - 1);
+                int nodeId = it->second.m_sf10[index];
+                while ((int) it->second.m_sf10.size() > nSF10 && toas[4] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf10.erase(it->second.m_sf10.begin() + index);   
+                }
                 
-                it->second.m_sf11.push_back(it->second.m_sf10[index]);
+                if ((int) it->second.m_sf10.size() > nSF10 && maxDelays[nodeId] > toas[4])
+                {
+                    it->second.m_sf11.push_back(it->second.m_sf10[index]);
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(1);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(1);
 
-                it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
+                    it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf7.size() <= nSF7 && (int) it->second.m_sf8.size() <= nSF8 
@@ -1809,71 +1899,111 @@ LorawanMacHelper::RSFA_Plus(NodeContainer endDevices,
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf12.size() < nSF12)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+                int nodeId = it->second.m_sf7[index];
+                while ((int) it->second.m_sf7.size() > nSF7 && toas[5] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf7.erase(it->second.m_sf7.begin() + index);   
+                }
                 
-                it->second.m_sf12.push_back(it->second.m_sf7[index]);
+                if ((int) it->second.m_sf7.size() > nSF7 && maxDelays[nodeId] > toas[5])
+                {
+                    it->second.m_sf12.push_back(it->second.m_sf7[index]);
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(0);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(0);
 
-                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                    it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf12.size() < nSF12)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+                int nodeId = it->second.m_sf8[index];
+                while ((int) it->second.m_sf8.size() > nSF8 && toas[5] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf8.erase(it->second.m_sf8.begin() + index);   
+                }
                 
-                it->second.m_sf12.push_back(it->second.m_sf8[index]);
+                if ((int) it->second.m_sf8.size() > nSF8 && maxDelays[nodeId] > toas[5])
+                {
+                    it->second.m_sf12.push_back(it->second.m_sf8[index]);
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(0);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(0);
 
-                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+                    it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf12.size() < nSF12)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
+                int nodeId = it->second.m_sf9[index];
+                while ((int) it->second.m_sf9.size() > nSF9 && toas[5] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf9.erase(it->second.m_sf9.begin() + index);   
+                }
                 
-                it->second.m_sf12.push_back(it->second.m_sf9[index]);
+                if ((int) it->second.m_sf9.size() > nSF9 && maxDelays[nodeId] > toas[5])
+                {
+                    it->second.m_sf12.push_back(it->second.m_sf9[index]);
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(0);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(0);
 
-                it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+                    it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf10.size() > nSF10 && (int) it->second.m_sf12.size() < nSF12)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size() - 1);
+                int nodeId = it->second.m_sf10[index];
+                while ((int) it->second.m_sf10.size() > nSF10 && toas[5] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf10.erase(it->second.m_sf10.begin() + index);   
+                }
                 
-                it->second.m_sf12.push_back(it->second.m_sf10[index]);
+                if ((int) it->second.m_sf10.size() > nSF10 && maxDelays[nodeId] > toas[5])
+                {
+                    it->second.m_sf12.push_back(it->second.m_sf10[index]);
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(0);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(0);
 
-                it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
+                    it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf11.size() > nSF11 && (int) it->second.m_sf12.size() < nSF12)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf11.size() - 1);
+                int nodeId = it->second.m_sf11[index];
+                while ((int) it->second.m_sf11.size() > nSF11 && toas[5] >= maxDelays[nodeId])
+                {
+                    it->second.m_sf11.erase(it->second.m_sf11.begin() + index);   
+                }
                 
-                it->second.m_sf12.push_back(it->second.m_sf11[index]);
+                if ((int) it->second.m_sf11.size() > nSF11 && maxDelays[nodeId] > toas[5])
+                {
+                    it->second.m_sf12.push_back(it->second.m_sf11[index]);
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf11[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(0);
+                    Ptr<Node> ed = endDevices.Get(it->second.m_sf11[index]);
+                    Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                    Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                    mac->SetDataRate(0);
 
-                it->second.m_sf11.erase(it->second.m_sf11.begin() + index);
+                    it->second.m_sf11.erase(it->second.m_sf11.begin() + index);
+                }
             }
 
             if ((int) it->second.m_sf7.size() <= nSF7 && (int) it->second.m_sf8.size() <= nSF8 
@@ -1894,7 +2024,7 @@ LorawanMacHelper::RSFA_Plus(NodeContainer endDevices,
     }
     gwInfoMap.clear();
 
-    std::cout << "R-SFA+\n";
+    std::cout << "DR-SFA\n";
 
     // Returning
     return sfQuantity;
