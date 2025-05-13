@@ -203,7 +203,7 @@ AdrComponent::AdrImplementation(uint8_t* newDataRate,
 
     // Compute the SNR margin taking into consideration the SNR of
     // previously received packets
-    double margin_SNR = m_SNR - req_SNR;
+    double margin_SNR = m_SNR - req_SNR - 10;
 
     NS_LOG_DEBUG("Margin = " << margin_SNR);
 

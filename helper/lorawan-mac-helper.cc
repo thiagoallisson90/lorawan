@@ -1482,14 +1482,14 @@ LorawanMacHelper::RSFA(NodeContainer endDevices,
 }  
 
 std::vector<int> 
-LorawanMacHelper::RSFA_Plus(NodeContainer endDevices,
-                            NodeContainer gateways,
-                            Ptr<LoraChannel> channel,
-                            std::vector<double> maxDelays,
-                            int nRun,
-                            bool useGwSens, 
-                            double T,
-                            double pSucc)
+LorawanMacHelper::DRSFA(NodeContainer endDevices,
+                        NodeContainer gateways,
+                        Ptr<LoraChannel> channel,
+                        std::vector<double> maxDelays,
+                        int nRun,
+                        bool useGwSens, 
+                        double T,
+                        double pSucc)
 {
     NS_LOG_FUNCTION_NOARGS();
 
@@ -1585,7 +1585,7 @@ LorawanMacHelper::RSFA_Plus(NodeContainer endDevices,
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 11);
 
-            std::cout << object->GetId() << ", " << maxDelays[object->GetId()] << ", " << nRun << " SF11\n";
+            //std::cout << object->GetId() << ", " << maxDelays[object->GetId()] << ", " << nRun << " SF11\n";
         }
         else if (rxPower > *(gwSensitivity+5))
         {
