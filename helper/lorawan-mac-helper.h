@@ -157,25 +157,25 @@ class LorawanMacHelper
                                                                NodeContainer gateways,
                                                                Ptr<LoraChannel> channel);
 
-    // Thiago Allisson: Criando C-SFA (Closest SFA)                                      
+    // Thiago Allisson: C-SFA (Closest SFA)                                      
     static std::vector<int> CSFA(NodeContainer endDevices,
                                  NodeContainer gateways,
                                  Ptr<LoraChannel> channel,
                                  bool useGwSens=false);
 
-    // Thiago Allisson: Criando CE-SFA (Capture Effect SFA)                                                                     
+    // Thiago Allisson: CE-SFA (Capture Effect SFA)                                                                     
     static std::vector<int> CeSFA(NodeContainer endDevices,
                                  NodeContainer gateways,
                                  Ptr<LoraChannel> channel,
                                  bool useGwSens=false);
 
-    // Thiago Allisson: Criando R-SFA (Reliable SFA)                                
+    // Thiago Allisson: R-SFA (Reliable SFA)                                
     static std::vector<int> RSFA(NodeContainer endDevices,
                                  NodeContainer gateways,
                                  Ptr<LoraChannel> channel,
                                  bool useGwSens=false);
 
-    // Thiago Allisson: Criando DR-SFA (Delay and Reliable-aware SFA)
+    // Thiago Allisson: DR-SFA (Delay and Reliable-aware SFA)
     static std::vector<int> DRSFA(NodeContainer endDevices,
                                   NodeContainer gateways,
                                   Ptr<LoraChannel> channel,
@@ -184,8 +184,18 @@ class LorawanMacHelper
                                   bool useGwSens=false,
                                   double T=600,
                                   double pSucc=0.99);                                 
+    
 
-    // Thiago Allisson: Criando I-TPA (I-TPA)                                
+    // Thiago Allisson: DR-SFA (Delay and Reliable-aware SFA+)
+    static std::vector<int> DRSFAp(NodeContainer endDevices,
+                                  NodeContainer gateways,
+                                  Ptr<LoraChannel> channel,
+                                  std::vector<double> maxDelays,
+                                  bool useGwSens=false, 
+                                  double T=600,
+                                  double pSucc=0.99);                                             
+
+    // Thiago Allisson: I-TPA (I-TPA)                                
     static std::vector<int> ITPA(NodeContainer endDevices,
                                  NodeContainer gateways,
                                  Ptr<LoraChannel> channel,
