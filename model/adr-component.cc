@@ -287,7 +287,6 @@ AdrComponent::RxPowerToSNR(double transmissionPower) const
 double
 AdrComponent::GetMinTxFromGateways(EndDeviceStatus::GatewayList gwList)
 {
-    std::cout << AdrComponent::tpAveraging << std::endl;
     auto it = gwList.begin();
     double min = it->second.rxPower;
 
@@ -342,6 +341,7 @@ AdrComponent::GetAverageTxFromGateways(EndDeviceStatus::GatewayList gwList)
 double
 AdrComponent::GetReceivedPower(EndDeviceStatus::GatewayList gwList)
 {
+    std::cout << AdrComponent::tpAveraging << std::endl;
     switch (tpAveraging)
     {
     case AdrComponent::AVERAGE:
