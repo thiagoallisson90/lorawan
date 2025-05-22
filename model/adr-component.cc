@@ -63,7 +63,7 @@ AdrComponent::GetTypeId()
                 "Dmargin value",
                 DoubleValue(10),
                 MakeDoubleAccessor(&AdrComponent::m_margin),
-                MakeDoubleChecker());
+                MakeDoubleChecker<double>(1, 20));
     return tid;
 }
 
@@ -287,6 +287,7 @@ AdrComponent::RxPowerToSNR(double transmissionPower) const
 double
 AdrComponent::GetMinTxFromGateways(EndDeviceStatus::GatewayList gwList)
 {
+    std::cout << AdrComponent::tpAveraging << std::endl;
     auto it = gwList.begin();
     double min = it->second.rxPower;
 
