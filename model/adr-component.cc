@@ -58,7 +58,12 @@ AdrComponent::GetTypeId()
                           "Whether to toggle the transmission power or not",
                           BooleanValue(true),
                           MakeBooleanAccessor(&AdrComponent::m_toggleTxPower),
-                          MakeBooleanChecker());
+                          MakeBooleanChecker())
+            .AddAttribute("Margin",
+                "Dmargin value",
+                DoubleValue(10),
+                MakeDoubleAccessor(&AdrComponent::m_margin),
+                MakeDoubleChecker());
     return tid;
 }
 
@@ -203,7 +208,7 @@ AdrComponent::AdrImplementation(uint8_t* newDataRate,
 
     // Compute the SNR margin taking into consideration the SNR of
     // previously received packets
-    double margin_SNR = m_SNR - req_SNR - 10;
+    double margin_SNR = m_SNR - req_SNR - m_margin;
 
     NS_LOG_DEBUG("Margin = " << margin_SNR);
 
