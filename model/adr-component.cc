@@ -341,7 +341,6 @@ AdrComponent::GetAverageTxFromGateways(EndDeviceStatus::GatewayList gwList)
 double
 AdrComponent::GetReceivedPower(EndDeviceStatus::GatewayList gwList)
 {
-    std::cout << AdrComponent::tpAveraging << std::endl;
     switch (tpAveraging)
     {
     case AdrComponent::AVERAGE:
