@@ -56,7 +56,7 @@ class AdrComponent : public NetworkControllerComponent
 
     void OnFailedReply(Ptr<EndDeviceStatus> status, Ptr<NetworkStatus> networkStatus) override;
 
-  private:
+  protected:
     /**
      * Implementation of the default Adaptive Data Rate (ADR) procedure.
      *
@@ -68,7 +68,7 @@ class AdrComponent : public NetworkControllerComponent
      * \param newTxPower [out] new tx power value selected for the end device.
      * \param status State representation of the current end device.
      */
-    void AdrImplementation(uint8_t* newDataRate, uint8_t* newTxPower, Ptr<EndDeviceStatus> status);
+    virtual void AdrImplementation(uint8_t* newDataRate, uint8_t* newTxPower, Ptr<EndDeviceStatus> status);
 
     /**
      * Convert spreading factor values [7:12] to respective data rate values [0:5].
@@ -178,6 +178,75 @@ class AdrComponent : public NetworkControllerComponent
 
     double m_margin;
 };
+
+/*class CAADR : public AdrComponent
+{
+public:
+  static TypeId GetTypeId();
+
+  CAADR();           //!< Default constructor
+  ~CAADR();          //!< Destructor
+
+  void SetToas(std::vector<double> toas);
+
+protected:
+  void AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status) override;
+  
+  double m_interval;
+  std::vector<double> m_toas;
+};*/
+
+class GADR : public AdrComponent
+{
+public:
+  /**
+   *  Register this type.
+   *  \return The object TypeId.
+   */
+  static TypeId GetTypeId();
+
+  GADR();           //!< Default constructor
+  ~GADR();          //!< Destructor
+
+protected:
+  double CalcStd(double m_SNR,
+                 EndDeviceStatus::ReceivedPacketList packetList, 
+                 int historyRange);
+
+  void AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status) override;
+};
+
+/*class KADR : public AdrComponent
+{
+public:
+  static TypeId GetTypeId();
+
+  KADR();           //!< Default constructor
+  ~KADR();          //!< Destructor
+
+protected:
+  void AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status) override;
+};
+
+class DRADR : public CAADR
+{
+  static TypeId GetTypeId();
+
+  DRADR();           //!< Default constructor
+  ~DRADR();          //!< Destructor
+
+protected:
+  void AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status) override;
+};*/
+
 } // namespace lorawan
 } // namespace ns3
 

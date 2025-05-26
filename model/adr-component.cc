@@ -8,6 +8,8 @@
 
 #include "adr-component.h"
 
+#include <cmath>
+
 namespace ns3
 {
 namespace lorawan
@@ -470,5 +472,220 @@ AdrComponent::GetTxPowerIndex(int txPower)
         return 7;
     }
 }
+
+// CAADR
+/*NS_LOG_COMPONENT_DEFINE("CAADR");
+NS_OBJECT_ENSURE_REGISTERED(CAADR);
+
+TypeId
+CAADR::GetTypeId()
+{
+  static TypeId tid =
+        TypeId("ns3::CAADR")
+            .SetGroupName("lorawan")
+            .AddConstructor<CAADR>()
+            .SetParent<AdrComponent>()
+            .AddAttribute("Interval",
+                          "Interval of message transmission",
+                          DoubleValue(1),
+                          MakeDoubleAccessor(&CAADR::m_interval),
+                          MakeDoubleChecker<double>(1));
+
+  return tid;
+}
+
+CAADR::CAADR()
+{
+}
+
+CAADR::~CAADR()
+{
+}
+
+void 
+CAADR::SetToas(std::vector<double> toas)
+{
+  m_toas = toas;
+}*/
+
+// GADR
+NS_OBJECT_ENSURE_REGISTERED(GADR);
+
+TypeId
+GADR::GetTypeId()
+{
+  static TypeId tid =
+        TypeId("ns3::GADR")
+            .SetGroupName("lorawan")
+            .AddConstructor<GADR>()
+            .SetParent<AdrComponent>();
+  
+  return tid;
+}
+
+GADR::GADR()
+{
+    historyRange = 20;
+    tpAveraging = AdrComponent::MAXIMUM;
+}
+
+GADR::~GADR()
+{
+}
+
+double
+GADR::CalcStd(double m_SNR, 
+              EndDeviceStatus::ReceivedPacketList packetList, 
+              int historyRange)
+{
+    double sumOfSquares = 0.0;
+
+    // Take elements from the list starting at the end
+    auto it = packetList.rbegin();
+    for (int i = 0; i < historyRange; i++, it++)
+    {
+        double SNR = RxPowerToSNR(GetReceivedPower(it->second.gwList));
+        sumOfSquares += std::pow(SNR - m_SNR, 2);
+    }
+
+    double std_SNR = std::sqrt(sumOfSquares / (historyRange - 1));
+
+    return std_SNR;
+}
+
+void 
+GADR::AdrImplementation(uint8_t* newDataRate,
+                        uint8_t* newTxPower,
+                        Ptr<EndDeviceStatus> status)
+{
+    double mean = GetAverageSNR(status->GetReceivedPacketList(), historyRange);
+    double std_SNR = CalcStd(mean, status->GetReceivedPacketList(), historyRange);
+    double m_SNR = 0;
+
+    EndDeviceStatus::ReceivedPacketList packetList = status->GetReceivedPacketList();
+    auto it = packetList.rbegin();
+    int n = 0;
+    for (int i = 0; i < historyRange; i++, it++)
+    {
+        double SNR = RxPowerToSNR(GetReceivedPower(it->second.gwList));
+        
+        if (SNR >= mean - std_SNR && SNR <= mean + std_SNR)
+        {
+            m_SNR += SNR;
+            n++;
+        }
+    }
+
+    m_SNR /= n;
+
+    NS_LOG_DEBUG("m_SNR = " << m_SNR);
+
+    // Get the spreading factor used by the device
+    uint8_t spreadingFactor = status->GetFirstReceiveWindowSpreadingFactor();
+
+    NS_LOG_DEBUG("SF = " << (unsigned)spreadingFactor);
+
+    // Get the device data rate and use it to get the SNR demodulation threshold
+    double req_SNR = threshold[SfToDr(spreadingFactor)];
+
+    NS_LOG_DEBUG("Required SNR = " << req_SNR);
+
+    // Get the device transmission power (dBm)
+    double transmissionPower = status->GetMac()->GetTransmissionPower();
+
+    NS_LOG_DEBUG("Transmission Power = " << transmissionPower);
+
+    // Compute the SNR margin taking into consideration the SNR of
+    // previously received packets
+    double margin_SNR = m_SNR - req_SNR - m_margin;
+
+    NS_LOG_DEBUG("Margin = " << margin_SNR);
+
+    // Number of steps to decrement the spreading factor (thereby increasing the data rate)
+    // and the TP.
+    int steps = std::floor(margin_SNR / 3);
+
+    NS_LOG_DEBUG("steps = " << steps);
+
+    // If the number of steps is positive (margin_SNR is positive, so its
+    // decimal value is high) increment the data rate, if there are some
+    // leftover steps after reaching the maximum possible data rate
+    //(corresponding to the minimum spreading factor) decrement the transmission power as
+    // well for the number of steps left.
+    // If, on the other hand, the number of steps is negative (margin_SNR is
+    // negative, so its decimal value is low) increase the transmission power
+    //(note that the spreading factor is not incremented as this particular algorithm
+    // expects the node itself to raise its spreading factor whenever necessary).
+    while (steps > 0 && spreadingFactor > min_spreadingFactor)
+    {
+        spreadingFactor--;
+        steps--;
+        NS_LOG_DEBUG("Decreased SF by 1");
+    }
+    while (steps > 0 && transmissionPower > min_transmissionPower)
+    {
+        transmissionPower -= 2;
+        steps--;
+        NS_LOG_DEBUG("Decreased Ptx by 2");
+    }
+    while (steps < 0 && transmissionPower < max_transmissionPower)
+    {
+        transmissionPower += 2;
+        steps++;
+        NS_LOG_DEBUG("Increased Ptx by 2");
+    }
+
+    *newDataRate = SfToDr(spreadingFactor);
+    *newTxPower = transmissionPower;
+}
+
+// KADR
+/*NS_LOG_COMPONENT_DEFINE("KADR");
+NS_OBJECT_ENSURE_REGISTERED(KADR);
+
+TypeId
+KADR::GetTypeId()
+{
+  static TypeId tid =
+        TypeId("ns3::KADR")
+            .SetGroupName("lorawan")
+            .AddConstructor<KADR>()
+            .SetParent<AdrComponent>();
+  
+  return tid;
+}
+
+KADR::KADR()
+{
+}
+
+KADR::~KADR()
+{
+}
+
+// DRADR
+NS_LOG_COMPONENT_DEFINE("DRADR");
+NS_OBJECT_ENSURE_REGISTERED(DRADR);
+
+TypeId
+DRADR::GetTypeId()
+{
+  static TypeId tid =
+        TypeId("ns3::DRADR")
+            .SetGroupName("lorawan")
+            .AddConstructor<DRADR>()
+            .SetParent<CAADR>();
+  
+  return tid;
+}
+
+DRADR::DRADR()
+{
+}
+
+DRADR::~DRADR()
+{
+}*/
+
 } // namespace lorawan
 } // namespace ns3
