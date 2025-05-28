@@ -474,8 +474,7 @@ AdrComponent::GetTxPowerIndex(int txPower)
 }
 
 // CAADR
-/*NS_LOG_COMPONENT_DEFINE("CAADR");
-NS_OBJECT_ENSURE_REGISTERED(CAADR);
+/*NS_OBJECT_ENSURE_REGISTERED(CAADR);
 
 TypeId
 CAADR::GetTypeId()
@@ -489,13 +488,21 @@ CAADR::GetTypeId()
                           "Interval of message transmission",
                           DoubleValue(1),
                           MakeDoubleAccessor(&CAADR::m_interval),
-                          MakeDoubleChecker<double>(1));
+                          MakeDoubleChecker<double>(3.0));
 
   return tid;
 }
 
 CAADR::CAADR()
 {
+    m_toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
+    m_succProb = 1;
+ 
+    historyRange = 20;
+    historyAveraging = AdrComponent::AVERAGE;
+
+    m_lastSucc = {1, 1, 1, 1, 1, 1};
+    m_isFirstExec = true;
 }
 
 CAADR::~CAADR()
@@ -505,7 +512,38 @@ CAADR::~CAADR()
 void 
 CAADR::SetToas(std::vector<double> toas)
 {
-  m_toas = toas;
+    m_toas = toas;
+}
+
+double 
+CAADR::Log(double base, double value)
+{
+    return std::log(value) / std::log(base);
+}
+
+int 
+CAADR::NumMaxOfNodesPerSF(double toa, double succProb, int nFreq)
+{
+    double base = (1 - toa / m_interval);
+    double numMax = 0.5 * Log(base, succProb);
+    return std::floor(numMax + 1) * nFreq;
+}
+
+void 
+CAADR::AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status)
+{
+    if (m_isFirstExec)
+    {
+        m_isFirstExec = false;
+        for (size_t i = 0; i < m_toas.size(); i++)    
+        {
+            m_nMax.push_back(NumMaxOfNodesPerSF(m_toas[i], 1, 3));
+        }
+    }
+
+    double m_SNR = GetAverageSNR(status->GetReceivedPacketList(), historyRange);
 }*/
 
 // GADR
@@ -526,7 +564,6 @@ GADR::GetTypeId()
 GADR::GADR()
 {
     historyRange = 20;
-    tpAveraging = AdrComponent::MAXIMUM;
 }
 
 GADR::~GADR()

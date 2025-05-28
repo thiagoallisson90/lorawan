@@ -194,8 +194,18 @@ protected:
                          uint8_t* newTxPower,
                          Ptr<EndDeviceStatus> status) override;
   
+
+  double Log(double base, double value);
+
+  int NumMaxOfNodesPerSF(double toa, double succProb, int nFreq = 3);
+                         
   double m_interval;
+  double m_succProb;
   std::vector<double> m_toas;
+
+  std::vector<int> m_nMax;
+  std::vector<int> m_lastSucc;
+  bool m_isFirstExec;
 };*/
 
 class GADR : public AdrComponent
