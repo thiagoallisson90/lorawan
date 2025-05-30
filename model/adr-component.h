@@ -193,7 +193,6 @@ protected:
   void AdrImplementation(uint8_t* newDataRate,
                          uint8_t* newTxPower,
                          Ptr<EndDeviceStatus> status) override;
-  
 
   double Log(double base, double value);
 
@@ -203,9 +202,7 @@ protected:
   std::vector<double> m_toas;
 
   std::vector<int> m_nMax;
-  std::vector<int> m_nConf;
   std::vector<double> m_lastProb;
-  bool m_isFirstExec;
 };
 
 class GADR : public AdrComponent

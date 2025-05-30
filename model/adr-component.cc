@@ -502,8 +502,6 @@ CAADR::CAADR()
 
     m_lastProb = {1, 1, 1, 1, 1, 1};
     m_nMax = {1, 1, 1, 1, 1, 1};
-    m_nConf = {0, 0, 0, 0, 0, 0};
-    m_isFirstExec = true;
 }
 
 CAADR::~CAADR()
