@@ -179,7 +179,7 @@ class AdrComponent : public NetworkControllerComponent
     double m_margin;
 };
 
-/*class CAADR : public AdrComponent
+class CAADR : public AdrComponent
 {
 public:
   static TypeId GetTypeId();
@@ -197,16 +197,16 @@ protected:
 
   double Log(double base, double value);
 
-  int NumMaxOfNodesPerSF(double toa, double succProb, int nFreq = 3);
+  int NumMaxOfNodesPerSF(double toa, double succProb, int nFreq = 1);
                          
   double m_interval;
-  double m_succProb;
   std::vector<double> m_toas;
 
   std::vector<int> m_nMax;
-  std::vector<int> m_lastSucc;
+  std::vector<int> m_nConf;
+  std::vector<double> m_lastProb;
   bool m_isFirstExec;
-};*/
+};
 
 class GADR : public AdrComponent
 {

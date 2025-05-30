@@ -474,7 +474,7 @@ AdrComponent::GetTxPowerIndex(int txPower)
 }
 
 // CAADR
-/*NS_OBJECT_ENSURE_REGISTERED(CAADR);
+NS_OBJECT_ENSURE_REGISTERED(CAADR);
 
 TypeId
 CAADR::GetTypeId()
@@ -485,8 +485,8 @@ CAADR::GetTypeId()
             .AddConstructor<CAADR>()
             .SetParent<AdrComponent>()
             .AddAttribute("Interval",
-                          "Interval of message transmission",
-                          DoubleValue(1),
+                          "Interval of message transmission in seconds",
+                          DoubleValue(1.0),
                           MakeDoubleAccessor(&CAADR::m_interval),
                           MakeDoubleChecker<double>(3.0));
 
@@ -496,12 +496,13 @@ CAADR::GetTypeId()
 CAADR::CAADR()
 {
     m_toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
-    m_succProb = 1;
  
     historyRange = 20;
     historyAveraging = AdrComponent::AVERAGE;
 
-    m_lastSucc = {1, 1, 1, 1, 1, 1};
+    m_lastProb = {1, 1, 1, 1, 1, 1};
+    m_nMax = {1, 1, 1, 1, 1, 1};
+    m_nConf = {0, 0, 0, 0, 0, 0};
     m_isFirstExec = true;
 }
 
@@ -526,7 +527,12 @@ CAADR::NumMaxOfNodesPerSF(double toa, double succProb, int nFreq)
 {
     double base = (1 - toa / m_interval);
     double numMax = 0.5 * Log(base, succProb);
-    return std::floor(numMax + 1) * nFreq;
+    numMax = std::floor(numMax + 1) * nFreq;
+    if (numMax < 0)
+    {
+        numMax = 0;
+    }
+    return numMax;
 }
 
 void 
@@ -534,17 +540,38 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
                          uint8_t* newTxPower,
                          Ptr<EndDeviceStatus> status)
 {
-    if (m_isFirstExec)
+    double decrementProb = 0.01;
+    std::vector<double> t = { -7.5, -10.0, -12.5, -15.0, -17.5, -20.0 };
+    
+    double m_SNR = GetAverageSNR(status->GetReceivedPacketList(), historyRange);
+    double tp = status->GetMac()->GetTransmissionPower();
+
+    uint8_t newSF = 7;
+    while (m_SNR < t[newSF - 7] && newSF < 12)
     {
-        m_isFirstExec = false;
-        for (size_t i = 0; i < m_toas.size(); i++)    
-        {
-            m_nMax.push_back(NumMaxOfNodesPerSF(m_toas[i], 1, 3));
-        }
+        newSF++;
     }
 
-    double m_SNR = GetAverageSNR(status->GetReceivedPacketList(), historyRange);
-}*/
+    uint8_t prevSF = newSF;
+    if (m_nMax[newSF - 7] == 0)
+    {
+        newSF = prevSF;
+        for (size_t i = 0; i < m_toas.size(); i++)
+        {
+            double newProb = m_lastProb[i] > decrementProb 
+                                ? m_lastProb[i] - decrementProb 
+                                : decrementProb;
+            m_lastProb[i] = newProb;
+            m_nMax[i] = NumMaxOfNodesPerSF(m_toas[i], newProb);
+        }
+    }
+    m_nMax[newSF - 7]--;
+
+    t.clear();
+
+    *newDataRate = SfToDr(newSF);
+    *newTxPower = tp;
+}
 
 // GADR
 NS_OBJECT_ENSURE_REGISTERED(GADR);
@@ -601,7 +628,7 @@ GADR::AdrImplementation(uint8_t* newDataRate,
 
     EndDeviceStatus::ReceivedPacketList packetList = status->GetReceivedPacketList();
     auto it = packetList.rbegin();
-    int n = 0;
+    int nMax = 0;
     for (int i = 0; i < historyRange; i++, it++)
     {
         double SNR = RxPowerToSNR(GetReceivedPower(it->second.gwList));
@@ -609,11 +636,11 @@ GADR::AdrImplementation(uint8_t* newDataRate,
         if (SNR >= mean - std_SNR && SNR <= mean + std_SNR)
         {
             m_SNR += SNR;
-            n++;
+            nMax++;
         }
     }
 
-    m_SNR /= n;
+    m_SNR /= nMax;
 
     NS_LOG_DEBUG("m_SNR = " << m_SNR);
 
