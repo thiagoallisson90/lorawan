@@ -227,6 +227,25 @@ protected:
                          Ptr<EndDeviceStatus> status) override;
 };
 
+class DRADR : public CAADR
+{
+public:
+  static TypeId GetTypeId();
+
+  DRADR();           //!< Default constructor
+  ~DRADR();          //!< Destructor
+
+protected:
+  void AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status) override;
+                         
+  double m_succProb;
+  bool m_firstRun;
+
+  std::map<Address, std::vector<int>> m_gwInfos;
+};
+
 /*class KADR : public AdrComponent
 {
 public:
@@ -234,19 +253,6 @@ public:
 
   KADR();           //!< Default constructor
   ~KADR();          //!< Destructor
-
-protected:
-  void AdrImplementation(uint8_t* newDataRate,
-                         uint8_t* newTxPower,
-                         Ptr<EndDeviceStatus> status) override;
-};
-
-class DRADR : public CAADR
-{
-  static TypeId GetTypeId();
-
-  DRADR();           //!< Default constructor
-  ~DRADR();          //!< Destructor
 
 protected:
   void AdrImplementation(uint8_t* newDataRate,
