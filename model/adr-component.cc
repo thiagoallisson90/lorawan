@@ -488,7 +488,12 @@ CAADR::GetTypeId()
                           "Interval of message transmission in seconds",
                           DoubleValue(1.0),
                           MakeDoubleAccessor(&CAADR::m_interval),
-                          MakeDoubleChecker<double>(3.0));
+                          MakeDoubleChecker<double>(3.0))
+            .AddAttribute("Run",
+                          "Number of Running",
+                          IntegerValue(1),
+                          MakeIntegerAccessor(&CAADR::m_nRun),
+                          MakeIntegerChecker<int>(1));
 
   return tid;
 }
@@ -496,18 +501,16 @@ CAADR::GetTypeId()
 CAADR::CAADR()
 {
     m_toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
- 
-    historyRange = 20;
-    historyAveraging = AdrComponent::AVERAGE;
-
     m_lastProb = {1, 1, 1, 1, 1, 1};
     m_nMax = {1, 1, 1, 1, 1, 1};
+    m_n = {0, 0, 0, 0, 0, 0,};
 }
 
 CAADR::~CAADR()
 {
     m_toas.clear();
     m_nMax.clear();
+    m_n.clear();
 }
 
 void 
@@ -535,42 +538,127 @@ CAADR::NumMaxOfNodesPerSF(double toa, double succProb, int nFreq)
     return numMax;
 }
 
+double 
+CAADR::GetAveragePr(EndDeviceStatus::ReceivedPacketList packetList, int historyRange)
+{
+    double sum = 0;
+    double m_power;
+
+    // Take elements from the list starting at the end
+    auto it = packetList.rbegin();
+    for (int i = 0; i < historyRange; i++, it++)
+    {
+        m_power = GetReceivedPower(it->second.gwList);
+
+        NS_LOG_DEBUG("Received power: " << GetReceivedPower(it->second.gwList));
+        NS_LOG_DEBUG("m_SNR = " << m_power);
+
+        sum += m_power;
+    }
+
+    double average = sum / historyRange;
+
+    NS_LOG_DEBUG("Power (average) = " << average);
+
+    return average;
+}
+
+uint8_t 
+CAADR::SelectSF(double power)
+{
+    if (power >= -130.0)
+    {
+        return 7;
+    }
+    if (power >= -132.5)
+    {
+        return 8;
+    }
+    if (power >= -135.0)
+    {
+        return 9;
+    }
+    if (power >= -137.5)
+    {
+        return 10;
+    }
+    if (power >= -140.0)
+    {
+        return 11;
+    }
+
+    return 12;
+}
+
 void 
 CAADR::AdrImplementation(uint8_t* newDataRate,
                          uint8_t* newTxPower,
                          Ptr<EndDeviceStatus> status)
 {
     double decrementProb = 0.01;
-    std::vector<double> t = { -7.5, -10.0, -12.5, -15.0, -17.5, -20.0 };
-    
-    double m_SNR = GetAverageSNR(status->GetReceivedPacketList(), historyRange);
-    double tp = status->GetMac()->GetTransmissionPower();
 
-    uint8_t newSF = 7;
-    while (m_SNR < t[newSF - 7] && newSF < 12)
+    // Calcula potência média recebida
+    double m_power = GetAveragePr(status->GetReceivedPacketList(), historyRange);
+
+    // Seleciona o menor SF com PR >= PR_min
+    uint8_t newSF = SelectSF(m_power); // SelectSF já cuida da checagem PR >= PR_min
+
+    // Verifica se SF ainda pode receber mais EDs (n < n_max)
+    if (m_n[newSF - 7] < m_nMax[newSF - 7])
     {
-        newSF++;
+        NS_LOG_DEBUG("Selected SF: " << unsigned(newSF));
     }
-
-    uint8_t prevSF = newSF;
-    if (m_nMax[newSF - 7] == 0)
+    else
     {
-        newSF = prevSF;
-        for (size_t i = 0; i < m_toas.size(); i++)
+        // Tenta aumentar o SF até encontrar um com espaço
+        while (m_n[newSF - 7] >= m_nMax[newSF - 7] && newSF < 12)
         {
-            double newProb = m_lastProb[i] > decrementProb 
-                                ? m_lastProb[i] - decrementProb 
-                                : decrementProb;
-            m_lastProb[i] = newProb;
-            m_nMax[i] = NumMaxOfNodesPerSF(m_toas[i], newProb);
+            newSF++;
+        }
+
+        if (newSF > 12)
+        {
+            newSF = 12;
+        }
+
+        // Se não há mais SFs disponíveis, reduz probabilidade e recalcula n_max
+        if (m_n[newSF - 7] >= m_nMax[newSF - 7])
+        {
+            newSF = SelectSF(m_power);
+
+            for (size_t i = 0; i < m_toas.size(); ++i)
+            {
+                double newProb = std::max(m_lastProb[i] - decrementProb, decrementProb);
+                m_lastProb[i] = newProb;
+                m_nMax[i] = NumMaxOfNodesPerSF(m_toas[i], newProb);
+
+                std::cout << m_nMax[i] << ", " 
+                          << NumMaxOfNodesPerSF(m_toas[i], newProb + decrementProb) << ", ";
+            }
+
+            std::cout << m_nRun << std::endl;
         }
     }
-    m_nMax[newSF - 7]--;
 
-    t.clear();
+    // Atualiza mapa SF por dispositivo e vetor de contagem
+    auto it = m_SfPerEd.find(status->GetMac()->GetDeviceAddress());
+    if (it == m_SfPerEd.end())
+    {
+        // Primeiro acesso desse ED
+        m_SfPerEd[status->GetMac()->GetDeviceAddress()] = newSF;
+        m_n[newSF - 7]++;
+    }
+    else if (it->second != newSF)
+    {
+        // Troca de SF
+        m_n[it->second - 7] = std::max(0, m_n[it->second - 7] - 1);
+        m_n[newSF - 7]++;
+        it->second = newSF;
+    }
 
+    // Atualiza data rate e potência
     *newDataRate = SfToDr(newSF);
-    *newTxPower = tp;
+    *newTxPower = 14.0;
 }
 
 // GADR

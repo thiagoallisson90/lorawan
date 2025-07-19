@@ -3372,6 +3372,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
@@ -3415,6 +3419,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
@@ -3449,6 +3457,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
@@ -3492,6 +3504,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
@@ -3526,6 +3542,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
@@ -3560,6 +3580,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
@@ -3604,6 +3628,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
@@ -3638,6 +3666,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
@@ -3672,6 +3704,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
@@ -3706,6 +3742,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
@@ -3750,6 +3790,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
@@ -3784,6 +3828,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
@@ -3818,6 +3866,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
@@ -3852,6 +3904,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
@@ -3886,6 +3942,10 @@ LorawanMacHelper::SFTPAp(NodeContainer endDevices,
                                                     gw->GetObject<MobilityModel>());
                     }
                     newTP += 1;
+                    if (newTP == 1)
+                    {
+                        newTP = 2;
+                    }
                     mac->SetTxPower(newTP);
 
                     it->second.m_sf11.erase(it->second.m_sf11.begin() + index);

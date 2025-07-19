@@ -197,12 +197,20 @@ protected:
   double Log(double base, double value);
 
   int NumMaxOfNodesPerSF(double toa, double succProb, int nFreq = 1);
+
+  double GetAveragePr(EndDeviceStatus::ReceivedPacketList packetList, int historyRange);
+
+  uint8_t SelectSF(double power);
                          
   double m_interval;
   std::vector<double> m_toas;
 
   std::vector<int> m_nMax;
+  std::vector<int> m_n;
   std::vector<double> m_lastProb;
+  int m_nRun;
+
+  std::map<LoraDeviceAddress, uint8_t> m_SfPerEd;
 };
 
 class GADR : public AdrComponent
