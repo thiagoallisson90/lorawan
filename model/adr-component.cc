@@ -632,11 +632,11 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
                 m_lastProb[i] = newProb;
                 m_nMax[i] = NumMaxOfNodesPerSF(m_toas[i], newProb);
 
-                std::cout << m_nMax[i] << ", " 
-                          << NumMaxOfNodesPerSF(m_toas[i], newProb + decrementProb) << ", ";
+                /*std::cout << m_nMax[i] << ", " 
+                          << NumMaxOfNodesPerSF(m_toas[i], newProb + decrementProb) << ", ";*/
             }
 
-            std::cout << m_nRun << std::endl;
+            //std::cout << m_nRun << std::endl;
         }
     }
 
