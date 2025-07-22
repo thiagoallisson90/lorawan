@@ -934,8 +934,180 @@ DRADR::AdrImplementation(uint8_t* newDataRate,
     t.clear();*/
 }
 
+NS_OBJECT_ENSURE_REGISTERED(MBADR);
+
+TypeId
+MBADR::GetTypeId()
+{
+  static TypeId tid =
+        TypeId("ns3::MBADR")
+            .SetGroupName("lorawan")
+            .AddConstructor<MBADR>()
+            .SetParent<AdrComponent>();
+  
+  return tid;
+}
+
+MBADR::MBADR()
+{
+}
+
+MBADR::~MBADR()
+{
+}
+
+std::vector<double> 
+MBADR::GetSnrList(EndDeviceStatus::ReceivedPacketList packetList, int historyRange)
+{
+    std::vector<double> snrList;
+    // Take elements from the list starting at the end
+    auto it = packetList.rbegin();
+
+    for (int i = 0; i < historyRange; i++, it++)
+    {
+        double snr = RxPowerToSNR(GetMaxTxFromGateways(it->second.gwList));
+        snrList.push_back(snr);
+    }
+
+    return snrList;
+}
+
+double
+MBADR::CalcPercentile(std::vector<double> snrList, double percentile)
+{
+    std::sort(snrList.begin(), snrList.end());
+    double position = (percentile / 100.0) * (snrList.size() - 1);
+    int index = static_cast<int>(position);
+    double fraction = position - index;
+
+    if (index + 1 < snrList.size()) 
+    {
+        return snrList[index] + fraction * (snrList[index + 1] - snrList[index]);
+    } else {
+        return snrList[index];
+    }
+}
+
+double 
+MBADR::CalcMedian(std::vector<double> snrList)
+{
+    return CalcPercentile(snrList, 50.0);
+}
+
+std::vector<double> 
+MBADR::RemOutliers(const std::vector<double>& snrList)
+{
+    double q1 = CalcPercentile(snrList, 25.0);
+    double q3 = CalcPercentile(snrList, 75.0);
+    double iqr = q3 - q1;
+
+    double lowerLimit = q1 - 1.5 * iqr;
+    double upperLimit = q3 + 1.5 * iqr;
+
+    std::vector<double> filtered;
+    for (double value : snrList) 
+    {
+        if (value >= lowerLimit && value <= upperLimit) 
+        {
+            filtered.push_back(value);
+        }
+    }
+
+    // Calculate and display final median
+    /*if (!filtered.empty()) 
+    {
+        double median = CalcMedian(filtered);
+    }*/
+
+    return filtered;
+}
+
+void
+MBADR::AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status)
+{    
+    std::vector<double> snrList = GetSnrList(status->GetReceivedPacketList(), historyRange);
+    std::vector<double> cleanedList = RemOutliers(snrList);
+
+    if (cleanedList.empty()) 
+    {
+        snrList.clear();
+        cleanedList.clear();
+
+        *newDataRate = SfToDr(status->GetFirstReceiveWindowSpreadingFactor());
+        *newTxPower = status->GetMac()->GetTransmissionPower();
+        return;
+    }
+
+    double m_SNR = CalcMedian(cleanedList);
+
+    NS_LOG_DEBUG("m_SNR = " << m_SNR);
+
+    // Get the spreading factor used by the device
+    uint8_t spreadingFactor = status->GetFirstReceiveWindowSpreadingFactor();
+
+    NS_LOG_DEBUG("SF = " << (unsigned)spreadingFactor);
+
+    // Get the device data rate and use it to get the SNR demodulation threshold
+    double req_SNR = threshold[SfToDr(spreadingFactor)];
+
+    NS_LOG_DEBUG("Required SNR = " << req_SNR);
+
+    // Get the device transmission power (dBm)
+    double transmissionPower = status->GetMac()->GetTransmissionPower();
+
+    NS_LOG_DEBUG("Transmission Power = " << transmissionPower);
+
+    // Compute the SNR margin taking into consideration the SNR of
+    // previously received packets
+    double margin_SNR = m_SNR - req_SNR - m_margin;
+
+    NS_LOG_DEBUG("Margin = " << margin_SNR);
+
+    // Number of steps to decrement the spreading factor (thereby increasing the data rate)
+    // and the TP.
+    int steps = std::floor(margin_SNR / 3);
+
+    NS_LOG_DEBUG("steps = " << steps);
+
+    // If the number of steps is positive (margin_SNR is positive, so its
+    // decimal value is high) increment the data rate, if there are some
+    // leftover steps after reaching the maximum possible data rate
+    //(corresponding to the minimum spreading factor) decrement the transmission power as
+    // well for the number of steps left.
+    // If, on the other hand, the number of steps is negative (margin_SNR is
+    // negative, so its decimal value is low) increase the transmission power
+    //(note that the spreading factor is not incremented as this particular algorithm
+    // expects the node itself to raise its spreading factor whenever necessary).
+    while (steps > 0 && spreadingFactor > min_spreadingFactor)
+    {
+        spreadingFactor--;
+        steps--;
+        NS_LOG_DEBUG("Decreased SF by 1");
+    }
+    while (steps > 0 && transmissionPower > min_transmissionPower)
+    {
+        transmissionPower -= 2;
+        steps--;
+        NS_LOG_DEBUG("Decreased Ptx by 2");
+    }
+    while (steps < 0 && transmissionPower < max_transmissionPower)
+    {
+        transmissionPower += 2;
+        steps++;
+        NS_LOG_DEBUG("Increased Ptx by 2");
+    }
+
+    snrList.clear();
+    cleanedList.clear();
+
+    *newDataRate = SfToDr(spreadingFactor);
+    *newTxPower = transmissionPower;
+}
+
 // KADR
-/*NS_OBJECT_ENSURE_REGISTERED(KADR);
+NS_OBJECT_ENSURE_REGISTERED(KADR);
 
 TypeId
 KADR::GetTypeId()
@@ -944,7 +1116,12 @@ KADR::GetTypeId()
         TypeId("ns3::KADR")
             .SetGroupName("lorawan")
             .AddConstructor<KADR>()
-            .SetParent<AdrComponent>();
+            .SetParent<AdrComponent>()
+            .AddAttribute("Alpha",
+                          "Interval of message transmission in seconds",
+                          DoubleValue(5),
+                          MakeDoubleAccessor(&KADR::m_alpha),
+                          MakeDoubleChecker<double>(1, 10.0));
   
   return tid;
 }
@@ -955,7 +1132,137 @@ KADR::KADR()
 
 KADR::~KADR()
 {
-}*/
+}
+
+std::vector<double> 
+KADR::GetSnrList(EndDeviceStatus::ReceivedPacketList packetList, int historyRange)
+{
+    std::vector<double> snrList;
+    // Take elements from the list starting at the end
+    auto it = packetList.rbegin();
+
+    for (int i = 0; i < historyRange; i++, it++)
+    {
+        double snr = RxPowerToSNR(GetMaxTxFromGateways(it->second.gwList));
+        snrList.push_back(snr);
+    }
+
+    return snrList;
+}
+
+double 
+KADR::GaussianVariogram(int h, double alpha) 
+{
+    if (h == 0)
+    {
+        return 0.0;
+    }
+
+    return 1.0 - std::exp(-(h * h) / (alpha * alpha));
+}
+
+double 
+KADR::PerformKrigingInterpolation(const std::vector<double>& snrList) 
+{
+    int n = snrList.size();
+    std::vector<std::vector<double>> matrixK(n + 1, std::vector<double>(n + 1, 0.0));
+    std::vector<double> vectorM(n + 1, 1.0);
+    vectorM[n] = 1.0; // Lagrange multiplier part
+
+    // Fill variogram matrix K
+    for (int i = 0; i < n; ++i) 
+    {
+        matrixK[i][n] = 1.0;
+        matrixK[n][i] = 1.0;
+        for (int j = 0; j < n; ++j) 
+        {
+            matrixK[i][j] = GaussianVariogram(std::abs(i - j), m_alpha);
+        }
+    }
+
+    // Simplified: assume equal weights for demonstration (no real linear solver here)
+    std::vector<double> weights(n, 1.0 / n);
+
+    // Weighted average interpolation (Kriging estimate)
+    double snrKriging = 0.0;
+    for (int i = 0; i < n; ++i) 
+    {
+        snrKriging += weights[i] * snrList[i];
+    }
+
+    return snrKriging;
+}
+
+void
+KADR::AdrImplementation(uint8_t* newDataRate,
+                        uint8_t* newTxPower,
+                        Ptr<EndDeviceStatus> status)
+{    
+    std::vector<double> snrList = GetSnrList(status->GetReceivedPacketList(), historyRange);
+    double m_SNR = PerformKrigingInterpolation(snrList);
+
+    NS_LOG_DEBUG("m_SNR = " << m_SNR);
+
+    // Get the spreading factor used by the device
+    uint8_t spreadingFactor = status->GetFirstReceiveWindowSpreadingFactor();
+
+    NS_LOG_DEBUG("SF = " << (unsigned)spreadingFactor);
+
+    // Get the device data rate and use it to get the SNR demodulation threshold
+    double req_SNR = threshold[SfToDr(spreadingFactor)];
+
+    NS_LOG_DEBUG("Required SNR = " << req_SNR);
+
+    // Get the device transmission power (dBm)
+    double transmissionPower = status->GetMac()->GetTransmissionPower();
+
+    NS_LOG_DEBUG("Transmission Power = " << transmissionPower);
+
+    // Compute the SNR margin taking into consideration the SNR of
+    // previously received packets
+    double margin_SNR = m_SNR - req_SNR - m_margin;
+
+    NS_LOG_DEBUG("Margin = " << margin_SNR);
+
+    // Number of steps to decrement the spreading factor (thereby increasing the data rate)
+    // and the TP.
+    int steps = std::floor(margin_SNR / 3);
+
+    NS_LOG_DEBUG("steps = " << steps);
+
+    // If the number of steps is positive (margin_SNR is positive, so its
+    // decimal value is high) increment the data rate, if there are some
+    // leftover steps after reaching the maximum possible data rate
+    //(corresponding to the minimum spreading factor) decrement the transmission power as
+    // well for the number of steps left.
+    // If, on the other hand, the number of steps is negative (margin_SNR is
+    // negative, so its decimal value is low) increase the transmission power
+    //(note that the spreading factor is not incremented as this particular algorithm
+    // expects the node itself to raise its spreading factor whenever necessary).
+    while (steps > 0 && spreadingFactor > min_spreadingFactor)
+    {
+        spreadingFactor--;
+        steps--;
+        NS_LOG_DEBUG("Decreased SF by 1");
+    }
+    while (steps > 0 && transmissionPower > min_transmissionPower)
+    {
+        transmissionPower -= 2;
+        steps--;
+        NS_LOG_DEBUG("Decreased Ptx by 2");
+    }
+    while (steps < 0 && transmissionPower < max_transmissionPower)
+    {
+        transmissionPower += 2;
+        steps++;
+        NS_LOG_DEBUG("Increased Ptx by 2");
+    }
+
+    snrList.clear();
+
+    *newDataRate = SfToDr(spreadingFactor);
+    *newTxPower = transmissionPower;
+}
 
 } // namespace lorawan
 } // namespace ns3

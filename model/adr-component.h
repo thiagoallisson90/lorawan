@@ -16,6 +16,8 @@
 #include "ns3/object.h"
 #include "ns3/packet.h"
 
+#include <algorithm>
+
 namespace ns3
 {
 namespace lorawan
@@ -254,7 +256,37 @@ protected:
   std::map<Address, std::vector<int>> m_gwInfos;
 };
 
-/*class KADR : public AdrComponent
+class MBADR : public AdrComponent
+{
+public:
+  /**
+   *  Register this type.
+   *  \return The object TypeId.
+   */
+  static TypeId GetTypeId();
+
+  MBADR();           //!< Default constructor
+  ~MBADR();          //!< Destructor
+
+protected:  
+  // Get SNR list
+  std::vector<double> GetSnrList(EndDeviceStatus::ReceivedPacketList packetList, int historyRange);
+
+  // Calculates a percentile using linear interpolation                 
+  double CalcPercentile(std::vector<double> snrList, double percentile);
+
+  // Calculates the median (50th percentile)
+  double CalcMedian(std::vector<double> snrList);
+
+  // Removes outliers using the IQR method
+  std::vector<double> RemOutliers(const std::vector<double>& snrList);
+
+  void AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status) override;
+};
+
+class KADR : public AdrComponent
 {
 public:
   static TypeId GetTypeId();
@@ -263,10 +295,21 @@ public:
   ~KADR();          //!< Destructor
 
 protected:
+  // Get SNR List
+  std::vector<double> GetSnrList(EndDeviceStatus::ReceivedPacketList packetList, int historyRange);
+
+  // Gaussian variogram function
+  double GaussianVariogram(int h, double alpha);
+
+  // Ordinary Kriging interpolation function
+  double PerformKrigingInterpolation(const std::vector<double>& snrList);
+
   void AdrImplementation(uint8_t* newDataRate,
                          uint8_t* newTxPower,
                          Ptr<EndDeviceStatus> status) override;
-};*/
+
+  double m_alpha;                        
+};
 
 } // namespace lorawan
 } // namespace ns3
