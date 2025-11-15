@@ -175,6 +175,16 @@ class LorawanMacHelper
                                  Ptr<LoraChannel> channel,
                                  bool useGwSens=false);
 
+    // Thiago Allisson: R-SFA (Reliable SFA)                                  
+    static std::vector<int> RSFA1(NodeContainer endDevices,
+                                 NodeContainer gateways,
+                                 Ptr<LoraChannel> channel,
+                                 std::vector<double> toas,
+                                 bool useGwSens=true,
+                                 double T=600,
+                                 double pSucc=0.99,
+                                 int nFreqs=3);                                 
+
     // Thiago Allisson: DR-SFA (Delay and Reliable-aware SFA)
     static std::vector<int> DRSFA(NodeContainer endDevices,
                                   NodeContainer gateways,
@@ -326,4 +336,4 @@ class LorawanMacHelper
 } // namespace lorawan
 
 } // namespace ns3
-#endif /* LORA_PHY_HELPER_H */
+#endif // LORAWAN_MAC_HELPER_H

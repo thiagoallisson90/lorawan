@@ -311,6 +311,36 @@ protected:
   double m_alpha;                        
 };
 
+/* SSFIR ADR implementation class.
+ * Based on the paper: Collision Avoidance Adaptive 
+ * Data Rate Algorithm for LoRaWAN.
+ * Published in MDPI Future Internet, 2024.
+ * Link: https://doi.org/10.3390/fi16100380
+ */
+class SSFIR : public AdrComponent
+{
+public:
+  static TypeId GetTypeId();
+
+  SSFIR();           //!< Default constructor
+  ~SSFIR();          //!< Destructor
+
+protected:
+  void AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status) override;
+  
+  /* Whether to use success probability or not. 
+   * If false, a deterministic approach is used (SSFIR-ADR1),
+   * else a probabilistic approach is used (SSFIR-ADR2).                        
+   */
+  bool m_useProb;     
+  /* The probability that will control the decrease in SF 
+   * at region K, used only if m_useProb is true SSFIR-ADR2.                        
+   */
+  double m_rho;       
+};
+
 } // namespace lorawan
 } // namespace ns3
 

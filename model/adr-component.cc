@@ -65,7 +65,7 @@ AdrComponent::GetTypeId()
                 "Dmargin value",
                 DoubleValue(10),
                 MakeDoubleAccessor(&AdrComponent::m_margin),
-                MakeDoubleChecker<double>(1, 20));
+                MakeDoubleChecker<double>(0, 20));
     return tid;
 }
 
@@ -190,6 +190,8 @@ AdrComponent::AdrImplementation(uint8_t* newDataRate,
     case AdrComponent::MINIMUM:
         m_SNR = GetMinSNR(status->GetReceivedPacketList(), historyRange);
     }
+
+    // std::cout << "HAvg = " << historyAveraging << ", margin = " << m_margin << std::endl;
 
     NS_LOG_DEBUG("m_SNR = " << m_SNR);
 
@@ -1190,6 +1192,21 @@ KADR::PerformKrigingInterpolation(const std::vector<double>& snrList)
         snrKriging += weights[i] * snrList[i];
     }
 
+    vectorM.clear();
+    vectorM.shrink_to_fit();
+
+    for (auto it: matrixK)
+    {
+        it.clear();
+        it.shrink_to_fit();
+    }
+
+    matrixK.clear();
+    matrixK.shrink_to_fit();
+
+    weights.clear();
+    weights.shrink_to_fit();
+
     return snrKriging;
 }
 
@@ -1261,6 +1278,163 @@ KADR::AdrImplementation(uint8_t* newDataRate,
     snrList.clear();
 
     *newDataRate = SfToDr(spreadingFactor);
+    *newTxPower = transmissionPower;
+}
+
+// SSFIR
+NS_OBJECT_ENSURE_REGISTERED(SSFIR);
+
+TypeId
+SSFIR::GetTypeId()
+{
+    static TypeId tid =
+        TypeId("ns3::SSFIR")
+            .SetGroupName("lorawan")
+            .AddConstructor<SSFIR>()
+            .SetParent<AdrComponent>()
+            .AddAttribute("UseProb",
+                          "Flag to use success probability or not",
+                          BooleanValue(false),
+                          MakeBooleanAccessor(&SSFIR::m_useProb),
+                          MakeBooleanChecker())
+            .AddAttribute("Rho",
+                          "The probability that will control the decrease in SF",
+                          DoubleValue(0.5),
+                          MakeDoubleAccessor(&SSFIR::m_rho),
+                          MakeDoubleChecker<double>(0.0, 1.0));
+
+    return tid;
+}
+
+SSFIR::SSFIR()
+{
+    historyRange = 4;
+}
+
+SSFIR::~SSFIR()
+{
+}
+
+void
+SSFIR::AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status)
+{
+    std::cout << "HR = " << historyRange << ", " << "Margin = " << m_margin 
+              << " dB." << std::endl;
+    // Compute the average SNR
+    double m_SNR = GetAverageSNR(status->GetReceivedPacketList(), historyRange);
+
+    // std::cout << "HAvg = " << historyAveraging << ", margin = " << m_margin << std::endl;
+    NS_LOG_DEBUG("m_SNR = " << m_SNR);
+
+    // Get the spreading factor used by the device
+    uint8_t spreadingFactor = status->GetFirstReceiveWindowSpreadingFactor();
+
+    NS_LOG_DEBUG("SF = " << (unsigned)spreadingFactor);
+
+    // Get the device data rate and use it to get the SNR demodulation threshold
+    double req_SNR = threshold[SfToDr(spreadingFactor)];
+
+    NS_LOG_DEBUG("Required SNR = " << req_SNR);
+
+    // Get the device transmission power (dBm)
+    double transmissionPower = status->GetMac()->GetTransmissionPower();
+
+    NS_LOG_DEBUG("Transmission Power = " << transmissionPower);
+
+    // Compute the SNR margin taking into consideration the SNR of
+    // previously received packets
+    double margin_SNR = m_SNR - req_SNR - m_margin;
+
+    NS_LOG_DEBUG("Margin = " << margin_SNR);
+
+    // Number of steps to decrement the spreading factor (thereby increasing the data rate)
+    // and the TP.
+    int steps = std::floor(margin_SNR / 3);
+
+    NS_LOG_DEBUG("steps = " << steps);
+
+    // If the number of steps is positive (margin_SNR is positive, so its
+    // decimal value is high) increment the data rate, if there are some
+    // leftover steps after reaching the maximum possible data rate
+    //(corresponding to the minimum spreading factor) decrement the transmission power as
+    // well for the number of steps left.
+    // If, on the other hand, the number of steps is negative (margin_SNR is
+    // negative, so its decimal value is low) increase the transmission power
+    //(note that the spreading factor is not incremented as this particular algorithm
+    // expects the node itself to raise its spreading factor whenever necessary).
+    while (steps > 0 && spreadingFactor > min_spreadingFactor)
+    {
+        spreadingFactor--;
+        steps--;
+        NS_LOG_DEBUG("Decreased SF by 1");
+    }
+    while (steps > 0 && transmissionPower > min_transmissionPower)
+    {
+        transmissionPower -= 2;
+        steps--;
+        NS_LOG_DEBUG("Decreased Ptx by 2");
+    }
+    while (steps < 0 && transmissionPower < max_transmissionPower)
+    {
+        transmissionPower += 2;
+        steps++;
+        NS_LOG_DEBUG("Increased Ptx by 2");
+    }
+
+    Ptr<RandomVariableStream> rv;
+    if (m_useProb)
+    {
+        rv = CreateObjectWithAttributes<UniformRandomVariable>("Min",
+                                        DoubleValue(0),
+                                        "Max",
+                                        DoubleValue(1));
+    }
+
+    uint8_t newSF = spreadingFactor;
+    uint8_t useSF = newSF;
+    if (spreadingFactor > 7)
+    {
+        while (newSF > 7)
+        {
+            double req_SNRAux = threshold[SfToDr(newSF - 1)];
+
+            if (!m_useProb)
+            {
+                if (m_SNR > req_SNRAux)
+                {
+                    newSF--;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            else
+            {                
+                if (m_SNR > req_SNRAux)
+                {
+                    newSF--;
+                    double change = rv->GetValue();
+                    if (change > m_rho)
+                    {
+                        useSF = newSF;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        if (m_useProb)
+        {
+            newSF = useSF;
+        }
+    }
+
+    *newDataRate = SfToDr(newSF);
     *newTxPower = transmissionPower;
 }
 
