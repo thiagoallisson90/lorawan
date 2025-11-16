@@ -1504,7 +1504,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         gwInfoMap.insert(std::make_pair((int) gw->GetId(), GwInfoT()));
     }
 
-    // std::vector<int> sfQuantity(7, 0);
+    std::vector<int> sfQuantity(6, 0);
     for (auto j = endDevices.Begin(); j != endDevices.End(); ++j)
     {
         Ptr<Node> object = *j;
@@ -1551,7 +1551,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         if(rxPower > *gwSensitivity)
         {
             mac->SetDataRate(5);
-            // sfQuantity[0] = sfQuantity[0] + 1;
+            sfQuantity[0] = sfQuantity[0] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 7);
@@ -1559,7 +1559,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+1))
         {
             mac->SetDataRate(4);
-            // sfQuantity[1] = sfQuantity[1] + 1;
+            sfQuantity[1] = sfQuantity[1] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 8);
@@ -1567,7 +1567,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+2))
         {
             mac->SetDataRate(3);
-            // sfQuantity[2] = sfQuantity[2] + 1;
+            sfQuantity[2] = sfQuantity[2] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 9);
@@ -1575,7 +1575,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+3))
         {
             mac->SetDataRate(2);
-            // sfQuantity[3] = sfQuantity[3] + 1;
+            sfQuantity[3] = sfQuantity[3] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 10);
@@ -1583,7 +1583,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+4))
         {
             mac->SetDataRate(1);
-            // sfQuantity[4] = sfQuantity[4] + 1;
+            sfQuantity[4] = sfQuantity[4] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 11);
@@ -1591,7 +1591,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+5))
         {
             mac->SetDataRate(0);
-            // sfQuantity[5] = sfQuantity[5] + 1;
+            sfQuantity[5] = sfQuantity[5] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 12);
@@ -1599,12 +1599,25 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         else // Device is out of range. Assign SF12.
         {
             mac->SetDataRate(0);
-            // sfQuantity[6] = sfQuantity[6] + 1;
+            sfQuantity[5] = sfQuantity[5] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 12);
         }
     } // end loop on nodes
+
+    std::cout << "SF Inicial\n";
+    for (auto sf: sfQuantity)
+    {
+        std::cout << sf << " ";
+    }
+    std::cout << std::endl;
+    for (int i = 0; i < 50; i++)
+    {
+        std::cout << "#";
+    }
+    std::cout << std::endl;
+    sfQuantity.clear();
 
     /*std::vector<double> toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
     int t = 600;
@@ -1914,7 +1927,8 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         sfDist[5 - mac->GetDataRate()]++;
     }
 
-    /*for (auto sf: sfDist)
+    std::cout << "R-SFA\n";
+    for (auto sf: sfDist)
     {
         std::cout << sf << " ";
     }
@@ -1923,7 +1937,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
     {
         std::cout << "#";
     }
-    std::cout << std::endl;*/
+    std::cout << std::endl;
 
     // Clear Data
     toas.clear();
@@ -1933,8 +1947,6 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         it.second.Clear();
     }
     gwInfoMap.clear();
-
-    std::cout << "R-SFA\n";
 
     // Returning
     // return sfQuantity;
