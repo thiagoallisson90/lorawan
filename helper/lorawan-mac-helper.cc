@@ -1702,6 +1702,11 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
                 it1->second.m_sf9.push_back(it1->second.m_sf8[index]);
                 it1->second.m_sf8.erase(it1->second.m_sf8.begin() + index);
             }
+
+            if (it1->second.m_sf7.size() <= nSF7 && it1->second.m_sf8.size() <= nSF8)
+            {
+                break;
+            }
         }
 
         // { 7, 8, 9 } => 10
@@ -1748,6 +1753,12 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
 
                 it1->second.m_sf10.push_back(it1->second.m_sf9[index]);
                 it1->second.m_sf9.erase(it1->second.m_sf9.begin() + index);
+            }
+
+            if (it1->second.m_sf7.size() <= nSF7 && it1->second.m_sf8.size() <= nSF8 
+                && it1->second.m_sf9.size() <= nSF9)
+            {
+                break;
             }
         }
 
@@ -1812,6 +1823,12 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
 
                 it1->second.m_sf11.push_back(it1->second.m_sf10[index]);
                 it1->second.m_sf10.erase(it1->second.m_sf10.begin() + index);
+            }
+
+            if (it1->second.m_sf7.size() <= nSF7 && it1->second.m_sf8.size() <= nSF8 
+                && it1->second.m_sf9.size() <= nSF9 && it1->second.m_sf10.size() <= 10)
+            {
+                break;
             }
         }
 
@@ -1891,6 +1908,13 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
 
                 it1->second.m_sf12.push_back(it1->second.m_sf11[index]);
                 it1->second.m_sf11.erase(it1->second.m_sf11.begin() + index);
+            }
+
+            if (it1->second.m_sf7.size() <= nSF7 && it1->second.m_sf8.size() <= nSF8 
+                && it1->second.m_sf9.size() <= nSF9 && it1->second.m_sf10.size() <= 10
+                && it1->second.m_sf11.size() <= nSF11)
+            {
+                break;
             }
         }
     }
