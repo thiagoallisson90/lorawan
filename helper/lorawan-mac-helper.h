@@ -196,7 +196,7 @@ class LorawanMacHelper
                                   double pSucc=0.99);                                 
     
 
-    // Thiago Allisson: SFTPA (SF and TP Allocation) | DR-SFA 
+    // Thiago Allisson: SFTPA (SF and TP Allocation)
     static std::vector<int> SFTPA(NodeContainer endDevices,
                                   NodeContainer gateways,
                                   Ptr<LoraChannel> channel,
@@ -204,6 +204,18 @@ class LorawanMacHelper
                                   bool useGwSens=false, 
                                   double T=600,
                                   double pSucc=0.99);
+    
+    // Thiago Allisson: SFTPA1 (SF and TP Allocation)
+    // O mesmo que o anterior com um assinatura diferente
+    // Parâmetros toas e nFreqs adicionado
+    static std::vector<int> SFTPA1(NodeContainer endDevices,
+                                   NodeContainer gateways,
+                                   Ptr<LoraChannel> channel,
+                                   std::vector<double> toas,
+                                   int nFreqs=3,
+                                   bool useGwSens=true, 
+                                   double T=600,
+                                   double pSucc=0.99);                                  
 
     // Thiago Allisson: SFTPA+ (SF and TP Allocation+)
     static std::vector<int> SFTPAp(NodeContainer endDevices,
