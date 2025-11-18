@@ -1910,7 +1910,6 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         sfDist[5 - mac->GetDataRate()]++;
     }
 
-    std::cout << "R-SFA\n";
     for (auto sf: sfDist)
     {
         std::cout << sf << " ";
@@ -1921,7 +1920,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         std::cout << "#";
     }
     std::cout << std::endl;
-
+    
     std::cout << "R-SFA\n";
 
     // Clear Data
