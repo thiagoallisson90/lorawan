@@ -9,11 +9,24 @@
 #include "adr-component.h"
 
 #include <cmath>
+#include <sstream>
 
 namespace ns3
 {
 namespace lorawan
 {
+
+std::vector<std::string> split(const std::string& str, char delim) {
+    std::vector<std::string> tokens;
+    std::stringstream ss(str);
+    std::string item;
+
+    while (std::getline(ss, item, delim)) {
+        tokens.push_back(item);
+    }
+
+    return tokens;
+}
 
 ////////////////////////////////////////
 // LinkAdrRequest commands management //
@@ -488,22 +501,31 @@ CAADR::GetTypeId()
             .SetParent<AdrComponent>()
             .AddAttribute("Interval",
                           "Interval of message transmission in seconds",
-                          DoubleValue(1.0),
+                          DoubleValue(3.0),
                           MakeDoubleAccessor(&CAADR::m_interval),
-                          MakeDoubleChecker<double>(3.0))
+                          MakeDoubleChecker<double>(1.0, 48 * 60 * 60))
+            .AddAttribute("Prob",
+                          "Success Probability",
+                          DoubleValue(1.0),
+                          MakeDoubleAccessor(&CAADR::m_prob),
+                          MakeDoubleChecker<double>(0.01, 1.0))
             .AddAttribute("Run",
                           "Number of Running",
                           IntegerValue(1),
                           MakeIntegerAccessor(&CAADR::m_nRun),
-                          MakeIntegerChecker<int>(1));
+                          MakeIntegerChecker<int>(1))
+            .AddAttribute("ToAs",
+                          "ToAs for SFs",
+                          StringValue(""),
+                          MakeStringAccessor(&CAADR::m_sToas),
+                          MakeStringChecker());
 
   return tid;
 }
 
 CAADR::CAADR()
 {
-    m_toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
-    m_lastProb = {1, 1, 1, 1, 1, 1};
+    // m_toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
     m_nMax = {1, 1, 1, 1, 1, 1};
     m_n = {0, 0, 0, 0, 0, 0,};
 }
@@ -597,6 +619,20 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
                          uint8_t* newTxPower,
                          Ptr<EndDeviceStatus> status)
 {
+    if (m_toas.size() == 0 && m_sToas != "")
+    {
+        std::vector<std::string> toas = split(m_sToas, ',');
+        for (auto toa: toas)
+        {
+            m_toas.push_back(std::stod(toa));
+        }
+    }
+    else
+    {
+        // ToAs for 51-Byte packet.
+        m_toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
+    }
+
     double decrementProb = 0.01;
 
     // Calcula potência média recebida
@@ -605,19 +641,14 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
     // Seleciona o menor SF com PR >= PR_min
     uint8_t newSF = SelectSF(m_power); // SelectSF já cuida da checagem PR >= PR_min
 
-    // Verifica se SF ainda pode receber mais EDs (n < n_max)
-    if (m_n[newSF - 7] < m_nMax[newSF - 7])
-    {
-        NS_LOG_DEBUG("Selected SF: " << unsigned(newSF));
-    }
-    else
+    // Verifica se SF ainda pode receber mais EDs (Se sim, n < n_max)
+    if ((m_n[newSF - 7] >= m_nMax[newSF - 7]))
     {
         // Tenta aumentar o SF até encontrar um com espaço
         while (m_n[newSF - 7] >= m_nMax[newSF - 7] && newSF < 12)
         {
             newSF++;
         }
-
         if (newSF > 12)
         {
             newSF = 12;
@@ -627,18 +658,15 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
         if (m_n[newSF - 7] >= m_nMax[newSF - 7])
         {
             newSF = SelectSF(m_power);
-
-            for (size_t i = 0; i < m_toas.size(); ++i)
+            if (m_prob > decrementProb)
             {
-                double newProb = std::max(m_lastProb[i] - decrementProb, decrementProb);
-                m_lastProb[i] = newProb;
-                m_nMax[i] = NumMaxOfNodesPerSF(m_toas[i], newProb);
-
-                /*std::cout << m_nMax[i] << ", " 
-                          << NumMaxOfNodesPerSF(m_toas[i], newProb + decrementProb) << ", ";*/
+                m_prob -= decrementProb;
             }
 
-            //std::cout << m_nRun << std::endl;
+            for (size_t i = 0; i < m_toas.size(); ++i)
+            {   
+                m_nMax[i] = NumMaxOfNodesPerSF(m_toas[i], m_prob);
+            }
         }
     }
 
@@ -653,7 +681,8 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
     else if (it->second != newSF)
     {
         // Troca de SF
-        m_n[it->second - 7] = std::max(0, m_n[it->second - 7] - 1);
+        m_n[it->second - 7] = 
+            m_n[it->second - 7] > 0 ? m_n[it->second - 7] - 1 : 0;
         m_n[newSF - 7]++;
         it->second = newSF;
     }

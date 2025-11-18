@@ -205,11 +205,14 @@ protected:
   uint8_t SelectSF(double power);
                          
   double m_interval;
+  double m_prob;
+  
   std::vector<double> m_toas;
-
   std::vector<int> m_nMax;
   std::vector<int> m_n;
-  std::vector<double> m_lastProb;
+  // std::vector<double> m_lastProb;
+
+  std::string m_sToas;
   int m_nRun;
 
   std::map<LoraDeviceAddress, uint8_t> m_SfPerEd;
