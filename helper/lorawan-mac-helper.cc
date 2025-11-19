@@ -1606,7 +1606,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         }
     } // end loop on nodes
 
-    std::cout << "SF Inicial\n";
+    /*std::cout << "SF Inicial\n";
     for (auto sf: sfQuantity)
     {
         std::cout << sf << " ";
@@ -1617,7 +1617,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         std::cout << "#";
     }
     std::cout << std::endl;
-    sfQuantity.clear();
+    sfQuantity.clear();*/
 
     /*std::vector<double> toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
     int t = 600;
@@ -1910,7 +1910,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         sfDist[5 - mac->GetDataRate()]++;
     }
 
-    for (auto sf: sfDist)
+    /*for (auto sf: sfDist)
     {
         std::cout << sf << " ";
     }
@@ -1919,7 +1919,7 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
     {
         std::cout << "#";
     }
-    std::cout << std::endl;
+    std::cout << std::endl;*/
     
     std::cout << "R-SFA\n";
 
@@ -1931,6 +1931,8 @@ LorawanMacHelper::RSFA1(NodeContainer endDevices,
         it.second.Clear();
     }
     gwInfoMap.clear();
+
+    sfQuantity.clear();
 
     // Returning
     // return sfQuantity;
