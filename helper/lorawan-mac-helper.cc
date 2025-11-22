@@ -4218,8 +4218,6 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
     }
     gwInfoMap.clear();
 
-    std::cout << "SFTPA\n";
-
     for (uint8_t i = 0; i < endDevices.GetN(); i++)
     {
         Ptr<Node> ed = endDevices.Get(i);
@@ -4229,6 +4227,8 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         int index = 5 - mac->GetDataRate();
         sfQuantity[index]++;
     }
+
+    std::cout << "SFTPA\n";
 
     // Returning
     return sfQuantity;
