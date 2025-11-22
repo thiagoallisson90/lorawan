@@ -3778,15 +3778,6 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
     int nSF11 = NumMaxOfNodesPerSF(toas[4], T, pSucc, nFreqs);
     int nSF12 = NumMaxOfNodesPerSF(toas[5], T, pSucc, nFreqs);
 
-    /*std::cout << nSF7 << ", " << nSF8 << ", " << nSF9 << ", " << nSF10 << ", " << nSF11 << ", " << nSF12 
-            << std::endl;
-    
-    for (size_t i = 0; i < sfQuantity.size() - 2; i++)
-    {
-        std::cout << sfQuantity[i] << ", ";
-    }
-    std::cout << (sfQuantity[5] + sfQuantity[6]) << std::endl;*/
-
     Ptr<UniformRandomVariable> uniformRV = CreateObject<UniformRandomVariable>();
     std::vector<double> sensValues = {-130.0, -132.5, -135.0, -137.5, -140.0, -142.5};
     for (uint32_t i = 0; i < gateways.GetN(); i++)
@@ -3799,7 +3790,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         while ((int) it->second.m_sf8.size() < nSF8)
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf8.size() < nSF8)
-            {                   
+            {               
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size());
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
@@ -3810,7 +3801,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[0] && newTP >= 2)
+                while(rssi > sensValues[0] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -3833,7 +3824,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         while ((int) it->second.m_sf9.size() < nSF9)
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf9.size() < nSF9)
-            {                
+            {    
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size());
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
@@ -3844,7 +3835,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[1] && newTP >= 2)
+                while(rssi > sensValues[1] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -3869,7 +3860,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[1] && newTP >= 2)
+                while(rssi > sensValues[1] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -3903,7 +3894,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[2] && newTP >= 2)
+                while(rssi > sensValues[2] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -3928,7 +3919,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[2] && newTP >= 2)
+                while(rssi > sensValues[2] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -3943,7 +3934,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
 
             if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf10.size() < nSF10)
             {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size());
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -3953,7 +3944,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[2] && newTP >= 2)
+                while(rssi > sensValues[2] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -3988,7 +3979,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[3] && newTP >= 2)
+                while(rssi > sensValues[3] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -4002,7 +3993,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
             }
 
             if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf11.size() < nSF11)
-            {    
+            {                
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size());
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
@@ -4013,7 +4004,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[3] && newTP >= 2)
+                while(rssi > sensValues[3] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -4021,13 +4012,13 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 }
                 newTP += 2;
                 mac->SetTxPower(newTP);
-
+                
                 it->second.m_sf11.push_back(it->second.m_sf8[index]);
                 it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
             }
 
             if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf11.size() < nSF11)
-            {
+            {                
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size());
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
@@ -4038,7 +4029,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[3] && newTP >= 2)
+                while(rssi > sensValues[3] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -4063,7 +4054,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[3] && newTP >= 2)
+                while(rssi > sensValues[3] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -4087,7 +4078,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         while ((int) it->second.m_sf12.size() < nSF12)
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf12.size() < nSF12)
-            { 
+            {                
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size());
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
@@ -4098,7 +4089,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[4] && newTP >= 2)
+                while(rssi > sensValues[4] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -4123,7 +4114,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[4] && newTP >= 2)
+                while(rssi > sensValues[4] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -4131,13 +4122,13 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 }
                 newTP += 2;
                 mac->SetTxPower(newTP);
-                
+
                 it->second.m_sf12.push_back(it->second.m_sf8[index]);
                 it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
             }
 
             if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf12.size() < nSF12)
-            {                   
+            {                
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size());
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
@@ -4148,7 +4139,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[4] && newTP >= 2)
+                while(rssi > sensValues[4] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -4156,7 +4147,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 }
                 newTP += 2;
                 mac->SetTxPower(newTP);
-                
+
                 it->second.m_sf12.push_back(it->second.m_sf9[index]);
                 it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
             }
@@ -4173,7 +4164,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[4] && newTP >= 2)
+                while(rssi > sensValues[4] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -4187,7 +4178,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
             }
 
             if ((int) it->second.m_sf11.size() > nSF11 && (int) it->second.m_sf12.size() < nSF12)
-            {                  
+            {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf11.size());
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf11[index]);
@@ -4198,7 +4189,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
                 double newTP = 14;
                 double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                     gw->GetObject<MobilityModel>());
-                while(rssi - 1 > sensValues[4] && newTP >= 2)
+                while(rssi > sensValues[4] && newTP >= 2)
                 {
                     newTP -= 2;
                     rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
@@ -4220,34 +4211,6 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         }
     }
 
-    /*std::cout << nSF7 << ", " << nSF8 << ", " << nSF9 << ", " << nSF10 
-              << ", " << nSF11 << ", " << nSF12 << std::endl;*/
-
-    std::vector<int> sfQuantity(6, 0);
-    // std::vector<int> tpQuantity(7, 0);
-    for (uint32_t i = 0; i < endDevices.GetN(); i++)
-    {
-        Ptr<Node> ed = endDevices.Get(i);
-        Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-        Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-
-        sfQuantity[5 - mac->GetDataRate()]++;
-        /*int index = (mac->GetTransmissionPower() * 0.5 - 1);
-        tpQuantity[index]++;*/
-    }
-
-    /*for (auto sf: sfQuantity)
-    {
-        std::cout << sf << " ";
-    }
-    std::cout << std::endl;
-
-    for (auto tp: tpQuantity)
-    {
-        std::cout << (1.0 * tp / endDevices.GetN()) * 100  << "% ";
-    }
-    std::cout << std::endl;*/
-
     // Clear Data
     toas.clear();
 
@@ -4258,6 +4221,17 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
     gwInfoMap.clear();
 
     std::cout << "SFTPA\n";
+
+    std::vector<int> sfQuantity(6, 0);
+    for (uint32_t i = 0; i < endDevices.GetN(); i++)
+    {
+        Ptr<Node> ed = endDevices.Get(i);
+        Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+        Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+        int index = (int) 5 - mac->GetDataRate();
+        sfQuantity[index]++;
+    }
 
     // Returning
     return sfQuantity;
