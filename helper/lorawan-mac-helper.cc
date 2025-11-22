@@ -3662,7 +3662,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         gwInfoMap.insert(std::make_pair((int) gw->GetId(), GwInfoT()));
     }
 
-    // std::vector<int> sfQuantity(7, 0);
+    std::vector<int> sfQuantity(6, 0);
     for (auto j = endDevices.Begin(); j != endDevices.End(); ++j)
     {
         Ptr<Node> object = *j;
@@ -3709,7 +3709,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         if(rxPower > *gwSensitivity)
         {
             mac->SetDataRate(5);
-            // sfQuantity[0] = sfQuantity[0] + 1;
+            sfQuantity[0] = sfQuantity[0] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 7);
@@ -3717,7 +3717,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+1))
         {
             mac->SetDataRate(4);
-            // sfQuantity[1] = sfQuantity[1] + 1;
+            sfQuantity[1] = sfQuantity[1] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 8);
@@ -3725,7 +3725,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+2))
         {
             mac->SetDataRate(3);
-            // sfQuantity[2] = sfQuantity[2] + 1;
+            sfQuantity[2] = sfQuantity[2] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 9);
@@ -3733,7 +3733,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+3))
         {
             mac->SetDataRate(2);
-            // sfQuantity[3] = sfQuantity[3] + 1;
+            sfQuantity[3] = sfQuantity[3] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 10);
@@ -3741,17 +3741,15 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+4))
         {
             mac->SetDataRate(1);
-            // sfQuantity[4] = sfQuantity[4] + 1;
+            sfQuantity[4] = sfQuantity[4] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 11);
-
-            //std::cout << object->GetId() << ", " << maxDelays[object->GetId()] << ", " << nRun << " SF11\n";
         }
         else if (rxPower > *(gwSensitivity+5))
         {
             mac->SetDataRate(0);
-            // sfQuantity[5] = sfQuantity[5] + 1;
+            sfQuantity[5] = sfQuantity[5] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 12);
@@ -3759,7 +3757,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         else // Device is out of range. Assign SF12.
         {
             mac->SetDataRate(0);
-            // sfQuantity[6] = sfQuantity[6] + 1;
+            sfQuantity[5] = sfQuantity[5] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 12);
@@ -4221,17 +4219,6 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
     gwInfoMap.clear();
 
     std::cout << "SFTPA\n";
-
-    std::vector<int> sfQuantity(6, 0);
-    for (uint32_t i = 0; i < endDevices.GetN(); i++)
-    {
-        Ptr<Node> ed = endDevices.Get(i);
-        Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-        Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-
-        int index = (int) 5 - mac->GetDataRate();
-        sfQuantity[index]++;
-    }
 
     // Returning
     return sfQuantity;
