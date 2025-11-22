@@ -3709,7 +3709,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         if(rxPower > *gwSensitivity)
         {
             mac->SetDataRate(5);
-            sfQuantity[0] = sfQuantity[0] + 1;
+            // sfQuantity[0] = sfQuantity[0] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 7);
@@ -3717,7 +3717,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+1))
         {
             mac->SetDataRate(4);
-            sfQuantity[1] = sfQuantity[1] + 1;
+            // sfQuantity[1] = sfQuantity[1] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 8);
@@ -3725,7 +3725,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+2))
         {
             mac->SetDataRate(3);
-            sfQuantity[2] = sfQuantity[2] + 1;
+            // sfQuantity[2] = sfQuantity[2] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 9);
@@ -3733,7 +3733,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+3))
         {
             mac->SetDataRate(2);
-            sfQuantity[3] = sfQuantity[3] + 1;
+            // sfQuantity[3] = sfQuantity[3] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 10);
@@ -3741,7 +3741,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+4))
         {
             mac->SetDataRate(1);
-            sfQuantity[4] = sfQuantity[4] + 1;
+            // sfQuantity[4] = sfQuantity[4] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 11);
@@ -3749,7 +3749,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         else if (rxPower > *(gwSensitivity+5))
         {
             mac->SetDataRate(0);
-            sfQuantity[5] = sfQuantity[5] + 1;
+            // sfQuantity[5] = sfQuantity[5] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 12);
@@ -3757,7 +3757,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         else // Device is out of range. Assign SF12.
         {
             mac->SetDataRate(0);
-            sfQuantity[5] = sfQuantity[5] + 1;
+            // sfQuantity[5] = sfQuantity[5] + 1;
 
             auto it = gwInfoMap.find((int) bestGateway->GetId());
             it->second.AddNode((int) object->GetId(), 12);
@@ -3789,7 +3789,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf8.size() < nSF8)
             {               
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -3823,7 +3823,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf9.size() < nSF9)
             {    
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -3848,7 +3848,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
 
             if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf9.size() < nSF9)
             {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -3882,7 +3882,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf10.size() < nSF10)
             {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -3907,7 +3907,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
 
             if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf10.size() < nSF10)
             {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -3932,7 +3932,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
 
             if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf10.size() < nSF10)
             {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -3967,7 +3967,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf11.size() < nSF11)
             {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -3992,7 +3992,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
 
             if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf11.size() < nSF11)
             {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -4017,7 +4017,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
 
             if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf11.size() < nSF11)
             {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -4042,7 +4042,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
 
             if ((int) it->second.m_sf10.size() > nSF10 && (int) it->second.m_sf11.size() < nSF11)
             {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -4077,7 +4077,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf12.size() < nSF12)
             {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -4102,7 +4102,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
 
             if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf12.size() < nSF12)
             {    
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -4127,7 +4127,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
 
             if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf12.size() < nSF12)
             {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -4152,7 +4152,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
 
             if ((int) it->second.m_sf10.size() > nSF10 && (int) it->second.m_sf12.size() < nSF12)
             {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -4177,7 +4177,7 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
 
             if ((int) it->second.m_sf11.size() > nSF11 && (int) it->second.m_sf12.size() < nSF12)
             {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf11.size());
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf11.size() - 1);
 
                 Ptr<Node> ed = endDevices.Get(it->second.m_sf11[index]);
                 Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
@@ -4219,6 +4219,16 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
     gwInfoMap.clear();
 
     std::cout << "SFTPA\n";
+
+    for (uint8_t i = 0; i < endDevices.GetN(); i++)
+    {
+        Ptr<Node> ed = endDevices.Get(i);
+        Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+        Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+        int index = 5 - mac->GetDataRate();
+        sfQuantity[index]++;
+    }
 
     // Returning
     return sfQuantity;
