@@ -2639,7 +2639,16 @@ LorawanMacHelper::DRSFA1(NodeContainer endDevices,
         auto it = gwInfoMap.find(gw->GetId());
         
         // 7 => 8
-        while ((int) it->second.m_sf8.size() < nSF8)
+        bool flag = false;
+        for (double d : maxDelays)
+        {
+            if (d > toas[1])
+            {
+                flag = true;
+                break;
+            }
+        }
+        while ((int) it->second.m_sf8.size() < nSF8 && flag)
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf8.size() < nSF8)
             {
@@ -2670,7 +2679,16 @@ LorawanMacHelper::DRSFA1(NodeContainer endDevices,
         }
 
         // {7, 8} => 9
-        while ((int) it->second.m_sf9.size() < nSF9)
+        flag = false;
+        for (double d : maxDelays)
+        {
+            if (d > toas[2])
+            {
+                flag = true;
+                break;
+            }
+        }
+        while ((int) it->second.m_sf9.size() < nSF9 && flag)
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf9.size() < nSF9)
             {                
@@ -2723,7 +2741,16 @@ LorawanMacHelper::DRSFA1(NodeContainer endDevices,
         }
 
         // {7, 8, 9} => 10
-        while ((int) it->second.m_sf10.size() < nSF10)
+        flag = false;
+        for (double d : maxDelays)
+        {
+            if (d > toas[3])
+            {
+                flag = true;
+                break;
+            }
+        }
+        while ((int) it->second.m_sf10.size() < nSF10 && flag)
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf10.size() < nSF10)
             {
@@ -2799,7 +2826,16 @@ LorawanMacHelper::DRSFA1(NodeContainer endDevices,
         }
 
         // {7, 8, 9, 10} => 11
-        while ((int) it->second.m_sf11.size() < nSF11)
+        flag = false;
+        for (double d : maxDelays)
+        {
+            if (d > toas[4])
+            {
+                flag = true;
+                break;
+            }
+        }
+        while ((int) it->second.m_sf11.size() < nSF11 && flag)
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf11.size() < nSF11)
             {
@@ -2897,7 +2933,16 @@ LorawanMacHelper::DRSFA1(NodeContainer endDevices,
         }
 
         // {7, 8, 9, 10, 11} => 12
-        while ((int) it->second.m_sf12.size() < nSF12)
+        flag = false;
+        for (double d : maxDelays)
+        {
+            if (d > toas[5])
+            {
+                flag = true;
+                break;
+            }
+        }
+        while ((int) it->second.m_sf12.size() < nSF12 && flag)
         {
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf12.size() < nSF12)
             {
