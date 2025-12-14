@@ -970,6 +970,116 @@ MBADR::~MBADR()
 {
 }
 
+/*
+double CalcMedian(std::vector<double> v) 
+{
+    if (v.empty()) return NAN;
+    
+    std::sort(v.begin(), v.end());
+    
+    int n = v.size();
+    if (n % 2 == 0)
+    {
+        return (v[n/2 - 1] + v[n/2]) / 2.0;
+    }
+    else
+    {
+        return v[n/2];
+    }
+}
+
+double CalcFirstQuartile(std::vector<double> v)
+{
+    if (v.empty()) return NAN;
+
+    std::sort(v.begin(), v.end());
+
+    int n = v.size();
+    int mid = n / 2;
+
+    // Metade inferior (Tukey: exclui a mediana se n for ímpar)
+    std::vector<double> lower(v.begin(), v.begin() + mid);
+
+    int m = lower.size();
+    if (m == 0) return NAN;
+
+    if (m % 2 == 0)
+    {
+        return (lower[m/2 - 1] + lower[m/2]) / 2.0;
+    }
+    else
+    {
+        return lower[m/2];
+    }
+}
+
+double CalcThirdQuartile(std::vector<double> v)
+{
+    if (v.empty()) return NAN;
+
+    std::sort(v.begin(), v.end());
+
+    int n = v.size();
+    int mid = n / 2;
+
+    // Metade superior (Tukey: exclui a mediana se n for ímpar)
+    std::vector<double> upper;
+
+    if (n % 2 == 0)
+        upper = std::vector<double>(v.begin() + mid, v.end());
+    else
+        upper = std::vector<double>(v.begin() + mid + 1, v.end());
+
+    int m = upper.size();
+    if (m == 0) return NAN;
+
+    if (m % 2 == 0)
+    {
+        return (upper[m/2 - 1] + upper[m/2]) / 2.0;
+    }
+    else
+    {
+        return upper[m/2];
+    }
+}
+
+double CalcIQR(std::vector<double> v)
+{
+    if (v.empty()) return NAN;
+
+    double Q1 = CalcFirstQuartile(v);
+    double Q3 = CalcThirdQuartile(v);
+
+    return Q3 - Q1;
+}
+
+std::vector<double> RemOutliers(std::vector<double> v)
+{
+    if (v.size() < 4) 
+        return v; // Não faz sentido remover outliers com poucos dados
+
+    double Q1 = CalcFirstQuartile(v);
+    double Q3 = CalcThirdQuartile(v);
+    double IQR = Q3 - Q1;
+    
+
+    double lowerBound = Q1 - 1.5 * IQR;
+    double upperBound = Q3 + 1.5 * IQR;
+
+    std::vector<double> filtered;
+
+    for (double x : v)
+    {
+        if (x >= lowerBound && x <= upperBound)
+        {
+            filtered.push_back(x);
+        }
+    }
+
+    return filtered;
+}
+*/
+
 std::vector<double> 
 MBADR::GetSnrList(EndDeviceStatus::ReceivedPacketList packetList, int historyRange)
 {
@@ -988,53 +1098,107 @@ MBADR::GetSnrList(EndDeviceStatus::ReceivedPacketList packetList, int historyRan
 }
 
 double
-MBADR::CalcPercentile(std::vector<double> snrList, double percentile)
+MBADR::CalcFirstQuartile(std::vector<double> v)
 {
-    std::sort(snrList.begin(), snrList.end());
-    double position = (percentile / 100.0) * (snrList.size() - 1);
-    int index = static_cast<int>(position);
-    double fraction = position - index;
+    if (v.empty()) return NAN;
 
-    if (index + 1 < snrList.size()) 
+    std::sort(v.begin(), v.end());
+
+    int n = v.size();
+    int mid = n / 2;
+
+    // Metade inferior (Tukey: exclui a mediana se n for ímpar)
+    std::vector<double> lower(v.begin(), v.begin() + mid);
+
+    int m = lower.size();
+    if (m == 0) return NAN;
+
+    if (m % 2 == 0)
     {
-        return snrList[index] + fraction * (snrList[index + 1] - snrList[index]);
-    } 
-    else 
+        return (lower[m/2 - 1] + lower[m/2]) / 2.0;
+    }
+    else
     {
-        return snrList[index];
+        return lower[m/2];
+    }
+}
+
+double
+MBADR::CalcThirdQuartile(std::vector<double> v)
+{
+    if (v.empty()) return NAN;
+
+    std::sort(v.begin(), v.end());
+
+    int n = v.size();
+    int mid = n / 2;
+
+    // Metade superior (Tukey: exclui a mediana se n for ímpar)
+    std::vector<double> upper;
+
+    if (n % 2 == 0)
+    {
+        upper = std::vector<double>(v.begin() + mid, v.end());
+    }
+    else
+    {
+        upper = std::vector<double>(v.begin() + mid + 1, v.end());
+    }
+
+    int m = upper.size();
+    if (m == 0) return NAN;
+
+    if (m % 2 == 0)
+    {
+        return (upper[m/2 - 1] + upper[m/2]) / 2.0;
+    }
+    else
+    {
+        return upper[m/2];
     }
 }
 
 double 
-MBADR::CalcMedian(std::vector<double> snrList)
+MBADR::CalcMedian(std::vector<double> v) 
 {
-    return CalcPercentile(snrList, 50.0);
+    if (v.empty()) return NAN;
+    
+    std::sort(v.begin(), v.end());
+    
+    int n = v.size();
+    if (n % 2 == 0)
+    {
+        return (v[n/2 - 1] + v[n/2]) / 2.0;
+    }
+    else
+    {
+        return v[n/2];
+    }
 }
 
 std::vector<double> 
-MBADR::RemOutliers(const std::vector<double>& snrList)
+MBADR::RemOutliers(std::vector<double> v)
 {
-    double q1 = CalcPercentile(snrList, 25.0);
-    double q3 = CalcPercentile(snrList, 75.0);
-    double iqr = q3 - q1;
-
-    double lowerLimit = q1 - 1.5 * iqr;
-    double upperLimit = q3 + 1.5 * iqr;
-
-    std::vector<double> filtered;
-    for (double value : snrList) 
+    if (v.size() < 4) 
     {
-        if (value >= lowerLimit && value <= upperLimit) 
-        {
-            filtered.push_back(value);
-        }
+        return v; // Não faz sentido remover outliers com poucos dados
     }
 
-    // Calculate and display final median
-    /*if (!filtered.empty()) 
+    double Q1 = CalcFirstQuartile(v);
+    double Q3 = CalcThirdQuartile(v);
+    double IQR = Q3 - Q1;
+
+    double lowerBound = Q1 - 1.5 * IQR;
+    double upperBound = Q3 + 1.5 * IQR;
+
+    std::vector<double> filtered;
+    for (double x : v)
     {
-        double median = CalcMedian(filtered);
-    }*/
+        if (x >= lowerBound && x <= upperBound)
+        {
+            filtered.push_back(x);
+        }
+    }
 
     return filtered;
 }
@@ -1047,7 +1211,7 @@ MBADR::AdrImplementation(uint8_t* newDataRate,
     std::vector<double> snrList = GetSnrList(status->GetReceivedPacketList(), historyRange);
     std::vector<double> cleanedList = RemOutliers(snrList);
 
-    if (cleanedList.empty()) 
+    /*if (cleanedList.empty()) 
     {
         snrList.clear();
         cleanedList.clear();
@@ -1055,7 +1219,7 @@ MBADR::AdrImplementation(uint8_t* newDataRate,
         *newDataRate = SfToDr(status->GetFirstReceiveWindowSpreadingFactor());
         *newTxPower = status->GetMac()->GetTransmissionPower();
         return;
-    }
+    }*/
 
     double m_SNR = CalcMedian(cleanedList);
 

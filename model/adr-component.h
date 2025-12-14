@@ -301,14 +301,16 @@ protected:
   // Get SNR list
   std::vector<double> GetSnrList(EndDeviceStatus::ReceivedPacketList packetList, int historyRange);
 
-  // Calculates a percentile using linear interpolation                 
-  double CalcPercentile(std::vector<double> snrList, double percentile);
+  // Calculates 1st quartile (25th percentile)
+  double CalcFirstQuartile(std::vector<double> v);
+
+  // Calculates 3rd quartile (75th percentile)
+  double CalcThirdQuartile(std::vector<double> v);
+
+  std::vector<double> RemOutliers(std::vector<double> v);
 
   // Calculates the median (50th percentile)
-  double CalcMedian(std::vector<double> snrList);
-
-  // Removes outliers using the IQR method
-  std::vector<double> RemOutliers(const std::vector<double>& snrList);
+  double CalcMedian(std::vector<double> v);
 
   void AdrImplementation(uint8_t* newDataRate,
                          uint8_t* newTxPower,
