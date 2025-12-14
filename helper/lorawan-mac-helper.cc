@@ -2650,6 +2650,7 @@ LorawanMacHelper::DRSFA1(NodeContainer endDevices,
         }
         while ((int) it->second.m_sf8.size() < nSF8 && flag)
         {
+            //std::cout << "SF8\n";
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf8.size() < nSF8)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
@@ -2690,6 +2691,7 @@ LorawanMacHelper::DRSFA1(NodeContainer endDevices,
         }
         while ((int) it->second.m_sf9.size() < nSF9 && flag)
         {
+            //std::cout << "SF9\n";
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf9.size() < nSF9)
             {                
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
@@ -2752,6 +2754,7 @@ LorawanMacHelper::DRSFA1(NodeContainer endDevices,
         }
         while ((int) it->second.m_sf10.size() < nSF10 && flag)
         {
+            //std::cout << "SF10\n";
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf10.size() < nSF10)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
@@ -2837,6 +2840,7 @@ LorawanMacHelper::DRSFA1(NodeContainer endDevices,
         }
         while ((int) it->second.m_sf11.size() < nSF11 && flag)
         {
+            std::cout << "SF11\n";
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf11.size() < nSF11)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
@@ -2944,6 +2948,7 @@ LorawanMacHelper::DRSFA1(NodeContainer endDevices,
         }
         while ((int) it->second.m_sf12.size() < nSF12 && flag)
         {
+            std::cout << "SF12\n";
             if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf12.size() < nSF12)
             {
                 int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
@@ -3063,7 +3068,7 @@ LorawanMacHelper::DRSFA1(NodeContainer endDevices,
         }
     }
 
-    for (uint8_t i = 0; i < endDevices.GetN(); i++)
+    for (uint32_t i = 0; i < endDevices.GetN(); i++)
     {
         Ptr<Node> ed = endDevices.Get(i);
         Ptr<NetDevice> netDevice = ed->GetDevice(0);
