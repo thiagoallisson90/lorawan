@@ -195,6 +195,17 @@ class LorawanMacHelper
                                   double T=600,
                                   double pSucc=0.99);                                 
     
+    // Thiago Allisson: DR-SFA (Delay and Reliable-aware SFA)
+    static std::vector<int> DRSFA1(NodeContainer endDevices,
+                                   NodeContainer gateways,
+                                   Ptr<LoraChannel> channel,
+                                   std::vector<double> toas,
+                                   std::vector<double> maxDelays,
+                                   int nRun,
+                                   bool useGwSens=true,
+                                   double T=600,
+                                   double pSucc=0.99,
+                                   int nFreqs=3);                                                                   
 
     // Thiago Allisson: SFTPA (SF and TP Allocation)
     static std::vector<int> SFTPA(NodeContainer endDevices,

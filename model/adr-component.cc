@@ -979,7 +979,8 @@ MBADR::GetSnrList(EndDeviceStatus::ReceivedPacketList packetList, int historyRan
 
     for (int i = 0; i < historyRange; i++, it++)
     {
-        double snr = RxPowerToSNR(GetMaxTxFromGateways(it->second.gwList));
+        //double snr = RxPowerToSNR(GetMaxTxFromGateways(it->second.gwList));
+        double snr = RxPowerToSNR(GetReceivedPower(it->second.gwList));
         snrList.push_back(snr);
     }
 
@@ -997,7 +998,9 @@ MBADR::CalcPercentile(std::vector<double> snrList, double percentile)
     if (index + 1 < snrList.size()) 
     {
         return snrList[index] + fraction * (snrList[index + 1] - snrList[index]);
-    } else {
+    } 
+    else 
+    {
         return snrList[index];
     }
 }
