@@ -627,7 +627,7 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
             m_toas.push_back(std::stod(toa));
         }
     }
-    else
+    else if (m_toas.size() == 0)
     {
         // ToAs for 51-Byte packet.
         m_toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
@@ -661,11 +661,11 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
             if (m_prob > decrementProb)
             {
                 m_prob -= decrementProb;
-            }
 
-            for (size_t i = 0; i < m_toas.size(); ++i)
-            {   
-                m_nMax[i] = NumMaxOfNodesPerSF(m_toas[i], m_prob);
+                for (size_t i = 0; i < m_toas.size(); ++i)
+                {   
+                    m_nMax[i] = NumMaxOfNodesPerSF(m_toas[i], m_prob);
+                }
             }
         }
     }
@@ -681,8 +681,10 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
     else if (it->second != newSF)
     {
         // Troca de SF
-        m_n[it->second - 7] = 
-            m_n[it->second - 7] > 0 ? m_n[it->second - 7] - 1 : 0;
+        if (m_n[it->second - 7] > 0)
+        {
+            m_n[it->second - 7]--;
+        }
         m_n[newSF - 7]++;
         it->second = newSF;
     }
@@ -822,147 +824,128 @@ GADR::AdrImplementation(uint8_t* newDataRate,
     *newTxPower = transmissionPower;
 }
 
-// DRADR
-NS_OBJECT_ENSURE_REGISTERED(DRADR);
+// RADR
+NS_OBJECT_ENSURE_REGISTERED(RADR);
 
 TypeId
-DRADR::GetTypeId()
+RADR::GetTypeId()
 {
   static TypeId tid =
-        TypeId("ns3::DRADR")
+        TypeId("ns3::RADR")
             .SetGroupName("lorawan")
-            .AddConstructor<DRADR>()
-            .SetParent<CAADR>()
-            .AddAttribute("SuccProb",
-                          "Interval of message transmission in seconds",
-                          DoubleValue(0.5),
-                          MakeDoubleAccessor(&DRADR::m_succProb),
-                          MakeDoubleChecker<double>(0.1, 1.0));
+            .AddConstructor<RADR>()
+            .SetParent<CAADR>();
   
   return tid;
 }
 
-DRADR::DRADR()
+RADR::RADR()
 {
-    m_toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963}; // payload of 51B
-
-    historyRange = 1;
-    m_firstRun = true;
+    // m_toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963}; // payload of 51B
 }
 
-DRADR::~DRADR()
+RADR::~RADR()
 {
     m_toas.clear();
     m_nMax.clear();
 
     for (auto it: m_gwInfos)
     {
-        it.second.clear();
+        it.second.Clear();
     }
     m_gwInfos.clear();
 }
 
+EndDeviceStatus::PacketInfoPerGw
+RADR::GetMaxSnrAndBestGw(EndDeviceStatus::GatewayList gwList)
+{
+    auto it = gwList.begin();
+    double max = it->second.rxPower;
+    EndDeviceStatus::PacketInfoPerGw bestInfo = it->second;
+
+    for (; it != gwList.end(); it++)
+    {
+        if (it->second.rxPower > max)
+        {
+            max = it->second.rxPower;
+            bestInfo = it->second;
+        }
+    }
+
+    return bestInfo;
+}   
+
 void
-DRADR::AdrImplementation(uint8_t* newDataRate,
-                         uint8_t* newTxPower,
-                         Ptr<EndDeviceStatus> status)
+RADR::AdrImplementation(uint8_t* newDataRate,
+                        uint8_t* newTxPower,
+                        Ptr<EndDeviceStatus> status)
 {    
-    /*std::vector<double> t = { -130.0, -132.5, -135.0, -137.5, -140.0, -142.5 };
+    // SF's Sensitivies
+    std::vector<double> sensitivies = { -130.0, -132.5, -135.0, -137.5, -140.0, -142.5 };
 
+    // Set ToAs
+    if (m_toas.empty() && m_sToas != "")
+    {
+        std::vector<std::string> data = split(m_sToas, ',');
+        for (auto d: data)
+        {
+            m_toas.push_back(std::stod(d));
+        }
+        data.clear();
+    }
+    else if (m_toas.empty())
+    {
+        // ToA for 51-Byte packet [Default Value]
+        m_toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
+    }
+
+    /*
+     * Set SF and TP for ED:
+     *  - Determine the maximum SNR received for the packet (max SNR), 
+     *    and identify the GW that receives the packet with the max SNR (best GW)
+     */
     EndDeviceStatus::ReceivedPacketList packetList = status->GetReceivedPacketList();
+    // Get Last Packet Received
     auto it = packetList.rbegin();
+    // Get max SNR and best GW
+    EndDeviceStatus::PacketInfoPerGw bestInfo = GetMaxSnrAndBestGw(it->second.gwList);
 
-    EndDeviceStatus::GatewayList gwList = it->second.gwList;
-    auto it1 = gwList.begin();
-    
-    double m_RSSI = it1->second.rxPower;
-    Address bestGW = it1->second.gwAddress;
-    for (; it1 != gwList.end(); it1++)
+    GatewayInfo gwInfo;
+    auto itGw = m_gwInfos.find(bestInfo.gwAddress);
+    if (itGw != m_gwInfos.end())
     {
-        if (it1->second.rxPower > m_RSSI)
-        {
-            m_RSSI = it1->second.rxPower;
-            bestGW = it1->second.gwAddress;
-        }
-    }
-
-    uint8_t newSF = 7;
-    while (m_RSSI < t[newSF - 7] && newSF < 12)
-    {
-        newSF++;
-    }
-
-    auto itGwInfo = m_gwInfos.find(bestGW);
-    if (itGwInfo == m_gwInfos.end())
-    {
-        std::vector<int> data;
-        for (auto toa: m_toas)
-        {
-            data.push_back(NumMaxOfNodesPerSF(toa, m_succProb, 3));
-        }
-        data[newSF - 7]--;
-        m_gwInfos.insert(std::make_pair(bestGW, data));
-    }
+        gwInfo = itGw->second;
+    }    
     else
     {
-        auto itData = itGwInfo->second;
-
-        uint8_t prevSF = newSF;
-        if (itData[newSF - 7] == 0)
+        const Address& gwAddr = bestInfo.gwAddress;
+        gwInfo = GatewayInfo(gwAddr);
+        m_gwInfos.insert(std::pair<Address, GatewayInfo>(gwAddr, gwInfo));
+    }
+    
+    // Determine max SNR and best GW
+    double maxSnr = bestInfo.rxPower;
+    uint8_t newSF = 12;
+    for (size_t i = 0; i < sensitivies.size(); i++)
+    {
+        if (maxSnr > sensitivies[i])
         {
-            do 
-            {
-                newSF++;
-            } while (newSF < 12 && itData[newSF - 7] == 0);
-            
-            if (itData[newSF - 7] == 0)
-            {
-                newSF = prevSF;
-            }
+            newSF = (uint8_t) i + 7;
+            break;
         }
-
-        if (itData[newSF - 7] > 0)
-        {
-            itData[newSF - 7]--;
-        }
-        itGwInfo->second = itData;
-        std::cout << "[Yes] " << bestGW << std::endl;
-        std::cout << "[Yes] SF = " << unsigned(prevSF) << ", Nmax = " << itData[newSF - 7] << std::endl;
-        std::cout << "[Yes] SF = " << unsigned(newSF) << ", Nmax = " << itData[newSF - 7] << std::endl;
     }
 
-    double tp = status->GetMac()->GetTransmissionPower();
+    // Get Last TP value
+    uint8_t tp = status->GetMac()->GetTransmissionPower();
 
-    double aux = m_RSSI;*/
-    /*while (m_RSSI > t[newSF - 7] && tp >= min_transmissionPower)
-    {
-        tp -= 2;
-        m_RSSI -= 2;
-    }
-    if (tp < 2)
-    {
-        tp += 2;
-        m_RSSI += 2;
-    }
+    // Update GatewayInfo
+    // gwInfo.m_numEdsPerSf[newSF - 7]++;
 
-    while (m_RSSI <= t[newSF - 7] && tp <= max_transmissionPower)
-    {
-        tp += 2;
-        m_RSSI += 2;
-    }
-    if (tp > 14)
-    {
-        tp -= 2;
-        m_RSSI -= 2;
-    }*/
-
-    /*std::cout << "New SF = " << unsigned(newSF) << ", New TP = " << tp << ", RSSI = " << aux << " dBm " 
-              << std::endl << std::endl;
+    // Clear Data
+    sensitivies.clear();
 
     *newDataRate = SfToDr(newSF);
     *newTxPower = tp;
-
-    t.clear();*/
 }
 
 NS_OBJECT_ENSURE_REGISTERED(MBADR);

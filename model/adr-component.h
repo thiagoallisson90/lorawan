@@ -17,6 +17,7 @@
 #include "ns3/packet.h"
 
 #include <algorithm>
+#include <vector>
 
 namespace ns3
 {
@@ -240,23 +241,48 @@ protected:
                          Ptr<EndDeviceStatus> status) override;
 };
 
-class DRADR : public CAADR
+struct GatewayInfo
+{
+  Address m_gwAddr;
+  std::vector<int> m_numEdsPerSf;
+
+  GatewayInfo(Address gwAddr):
+    m_gwAddr(gwAddr)
+  {
+    m_numEdsPerSf = {0, 0, 0, 0, 0, 0};
+  }
+
+  GatewayInfo()
+  {
+  }
+
+  ~GatewayInfo()
+  {
+    m_numEdsPerSf.clear();
+  }
+
+  void Clear()
+  {
+    m_numEdsPerSf.clear();
+  }
+};
+
+class RADR : public CAADR
 {
 public:
   static TypeId GetTypeId();
 
-  DRADR();           //!< Default constructor
-  ~DRADR();          //!< Destructor
+  RADR();           //!< Default constructor
+  ~RADR();          //!< Destructor
 
 protected:
+  EndDeviceStatus::PacketInfoPerGw GetMaxSnrAndBestGw(EndDeviceStatus::GatewayList gwList);                         
+
   void AdrImplementation(uint8_t* newDataRate,
                          uint8_t* newTxPower,
                          Ptr<EndDeviceStatus> status) override;
-                         
-  double m_succProb;
-  bool m_firstRun;
 
-  std::map<Address, std::vector<int>> m_gwInfos;
+  std::map<Address, GatewayInfo> m_gwInfos;
 };
 
 class MBADR : public AdrComponent
