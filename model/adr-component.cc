@@ -691,7 +691,8 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
 
     // Atualiza data rate e potência
     *newDataRate = SfToDr(newSF);
-    *newTxPower = 14.0;
+    //*newTxPower = 14;
+    *newTxPower = status->GetMac()->GetTransmissionPower();
 }
 
 // GADR
