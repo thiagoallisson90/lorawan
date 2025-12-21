@@ -633,6 +633,9 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
         m_toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
     }
 
+    // Get the spreading factor used by the device
+    uint8_t spreadingFactor = status->GetFirstReceiveWindowSpreadingFactor();
+
     double decrementProb = 0.01;
 
     // Calcula potência média recebida
@@ -640,6 +643,18 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
 
     // Seleciona o menor SF com PR >= PR_min
     uint8_t newSF = SelectSF(m_power); // SelectSF já cuida da checagem PR >= PR_min
+
+    auto it1 = m_SfPerEd.find(status->GetMac()->GetDeviceAddress());
+    if (it1 != m_SfPerEd.end())
+    {
+        if (spreadingFactor == newSF)
+        {
+            // Mesmo SF de antes, não faz nada
+            *newDataRate = SfToDr(spreadingFactor);
+            *newTxPower = status->GetMac()->GetTransmissionPower();
+            return;
+        }
+    }
 
     // Verifica se SF ainda pode receber mais EDs (Se sim, n < n_max)
     if ((m_n[newSF - 7] >= m_nMax[newSF - 7]))
@@ -662,10 +677,14 @@ CAADR::AdrImplementation(uint8_t* newDataRate,
             {
                 m_prob -= decrementProb;
 
+                //std::cout << " Prob: " << m_prob << std::endl;
+
                 for (size_t i = 0; i < m_toas.size(); ++i)
                 {   
                     m_nMax[i] = NumMaxOfNodesPerSF(m_toas[i], m_prob);
+                    //std::cout << "SF" << (i + 7) << " nMax: " << m_nMax[i] << "; ";
                 }
+                //std::cout << std::endl << std::endl;
             }
         }
     }
