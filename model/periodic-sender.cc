@@ -7,6 +7,7 @@
  */
 
 #include "periodic-sender.h"
+#include "app-tag.h"
 
 #include "lora-net-device.h"
 
@@ -49,7 +50,8 @@ PeriodicSender::PeriodicSender()
     : m_interval(Seconds(10)),
       m_initialDelay(Seconds(1)),
       m_basePktSize(10),
-      m_pktSizeRV(nullptr)
+      m_pktSizeRV(nullptr),
+      m_msgType(NONE)
 
 {
     NS_LOG_FUNCTION_NOARGS();
@@ -109,6 +111,8 @@ PeriodicSender::SendPacket()
     {
         packet = Create<Packet>(m_basePktSize);
     }
+    AppTag appTag(m_msgType);
+    packet->AddPacketTag(appTag);
     m_mac->Send(packet);
 
     // Schedule the next SendPacket event
@@ -145,6 +149,19 @@ PeriodicSender::StopApplication()
 {
     NS_LOG_FUNCTION_NOARGS();
     Simulator::Cancel(m_sendEvent);
+}
+
+uint8_t 
+PeriodicSender::GetMsgType() const
+{
+    return m_msgType;
+}
+
+void 
+PeriodicSender::SetMsgType(uint8_t msgType)
+{
+    m_msgType = msgType;
+    std::cout << "PeriodicSender: Set Msg Type = " << unsigned(m_msgType) << std::endl;
 }
 
 } // namespace lorawan

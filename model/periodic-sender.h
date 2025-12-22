@@ -93,6 +93,9 @@ class PeriodicSender : public Application
      */
     void StopApplication() override;
 
+    uint8_t GetMsgType() const;
+    void SetMsgType(uint8_t msgType);
+
   private:
     Time m_interval;       //!< The interval between to consecutive send events.
     Time m_initialDelay;   //!< The initial delay of this application.
@@ -101,6 +104,7 @@ class PeriodicSender : public Application
     uint8_t m_basePktSize; //!< The packet size.
     Ptr<RandomVariableStream>
         m_pktSizeRV; //!< The random variable that adds bytes to the packet size.
+    uint8_t m_msgType; //!< The message type identifier.
 };
 
 } // namespace lorawan
