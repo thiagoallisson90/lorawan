@@ -249,6 +249,15 @@ class LorawanMacHelper
                                    bool useGwSens=true, 
                                    double T=600);                                        
 
+    // Thiago Allisson: SFTPA2
+    static std::vector<int> SFTPA3(NodeContainer endDevices,
+                                   NodeContainer gateways,
+                                   Ptr<LoraChannel> channel,
+                                   std::vector<double> toas,
+                                   int nFreqs=3,
+                                   bool useGwSens=true, 
+                                   double T=600);                                        
+
     // Thiago Allisson: SFTPA+ (SF and TP Allocation+)
     static std::vector<int> SFTPAp(NodeContainer endDevices,
       NodeContainer gateways,

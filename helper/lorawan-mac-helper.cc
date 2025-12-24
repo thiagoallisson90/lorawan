@@ -5642,7 +5642,6 @@ CalcSuccRate(std::vector<double> toas,
     return succRate;
 }
 
-
 std::vector<int> 
 LorawanMacHelper::SFTPA2(NodeContainer endDevices,
                          NodeContainer gateways,
@@ -5848,7 +5847,7 @@ LorawanMacHelper::SFTPA2(NodeContainer endDevices,
         newSuccRate = CalcSuccRate(toas, T, sfs, (double) nFreqs);
         while (newSuccRate > succRate)
         {    
-            succRate =  newSuccRate;
+            succRate = newSuccRate;
             //std::cout << "GW " << gw->GetId() << " - Success Probability[" << (++j) << "]: " << succRate << "\n";
 
             int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
@@ -6568,6 +6567,924 @@ LorawanMacHelper::SFTPA2(NodeContainer endDevices,
     return sfQuantity;
 }
 
+std::vector<int> 
+LorawanMacHelper::SFTPA3(NodeContainer endDevices,
+                         NodeContainer gateways,
+                         Ptr<LoraChannel> channel,
+                         std::vector<double> toas,
+                         int nFreqs,
+                         bool useGwSens, 
+                         double T)
+{
+    NS_LOG_FUNCTION_NOARGS();
+
+    std::map<int, GwInfoT> gwInfoMap;
+
+    for (uint32_t i = 0; i < gateways.GetN(); i++)
+    {
+        Ptr<Node> gw = gateways.Get(i);
+        gwInfoMap.insert(std::make_pair((int) gw->GetId(), GwInfoT()));
+    }
+
+    std::vector<int> sfQuantity(6, 0);
+    for (auto j = endDevices.Begin(); j != endDevices.End(); ++j)
+    {
+        Ptr<Node> object = *j;
+        Ptr<MobilityModel> position = object->GetObject<MobilityModel>();
+        NS_ASSERT(position);
+        Ptr<NetDevice> netDevice = object->GetDevice(0);
+        Ptr<LoraNetDevice> loraNetDevice = DynamicCast<LoraNetDevice>(netDevice);
+        NS_ASSERT(loraNetDevice);
+        Ptr<ClassAEndDeviceLorawanMac> mac =
+            DynamicCast<ClassAEndDeviceLorawanMac>(loraNetDevice->GetMac());
+        NS_ASSERT(mac);
+
+        // Try computing the distance from each gateway and find the best one
+        Ptr<Node> bestGateway = gateways.Get(0);
+        Ptr<MobilityModel> bestGatewayPosition = bestGateway->GetObject<MobilityModel>();
+
+        // Assume devices transmit at 14 dBm
+        double highestRxPower = channel->GetRxPower(14, position, bestGatewayPosition);
+
+        for (auto currentGw = gateways.Begin() + 1; currentGw != gateways.End(); ++currentGw)
+        {
+            // Compute the power received from the current gateway
+            Ptr<Node> curr = *currentGw;
+            Ptr<MobilityModel> currPosition = curr->GetObject<MobilityModel>();
+            double currentRxPower = channel->GetRxPower(14, position, currPosition); // dBm
+
+            if (currentRxPower > highestRxPower)
+            {
+                bestGateway = curr;
+                bestGatewayPosition = currPosition;
+                highestRxPower = currentRxPower;
+            }
+        }
+
+        // NS_LOG_DEBUG ("Rx Power: " << highestRxPower);
+        double rxPower = highestRxPower;
+
+        // Get the Gw sensitivity
+        Ptr<NetDevice> gatewayNetDevice = bestGateway->GetDevice (0);
+        Ptr<LoraNetDevice> gatewayLoraNetDevice = DynamicCast<LoraNetDevice>(gatewayNetDevice);
+        Ptr<GatewayLoraPhy> gatewayPhy = DynamicCast<GatewayLoraPhy> (gatewayLoraNetDevice->GetPhy ()); 
+        const double *gwSensitivity = gatewayPhy->sensitivity; // gateway-lora-phy.cc => loc 131
+
+        if(rxPower > *gwSensitivity)
+        {
+            mac->SetDataRate(5);
+            // sfQuantity[0] = sfQuantity[0] + 1;
+
+            auto it = gwInfoMap.find((int) bestGateway->GetId());
+            it->second.AddNode((int) object->GetId(), 7);
+        }
+        else if (rxPower > *(gwSensitivity+1))
+        {
+            mac->SetDataRate(4);
+            // sfQuantity[1] = sfQuantity[1] + 1;
+
+            auto it = gwInfoMap.find((int) bestGateway->GetId());
+            it->second.AddNode((int) object->GetId(), 8);
+        }
+        else if (rxPower > *(gwSensitivity+2))
+        {
+            mac->SetDataRate(3);
+            // sfQuantity[2] = sfQuantity[2] + 1;
+
+            auto it = gwInfoMap.find((int) bestGateway->GetId());
+            it->second.AddNode((int) object->GetId(), 9);
+        }
+        else if (rxPower > *(gwSensitivity+3))
+        {
+            mac->SetDataRate(2);
+            // sfQuantity[3] = sfQuantity[3] + 1;
+
+            auto it = gwInfoMap.find((int) bestGateway->GetId());
+            it->second.AddNode((int) object->GetId(), 10);
+        }
+        else if (rxPower > *(gwSensitivity+4))
+        {
+            mac->SetDataRate(1);
+            // sfQuantity[4] = sfQuantity[4] + 1;
+
+            auto it = gwInfoMap.find((int) bestGateway->GetId());
+            it->second.AddNode((int) object->GetId(), 11);
+        }
+        else if (rxPower > *(gwSensitivity+5))
+        {
+            mac->SetDataRate(0);
+            // sfQuantity[5] = sfQuantity[5] + 1;
+
+            auto it = gwInfoMap.find((int) bestGateway->GetId());
+            it->second.AddNode((int) object->GetId(), 12);
+        }
+        else // Device is out of range. Assign SF12.
+        {
+            mac->SetDataRate(0);
+            // sfQuantity[5] = sfQuantity[5] + 1;
+
+            auto it = gwInfoMap.find((int) bestGateway->GetId());
+            it->second.AddNode((int) object->GetId(), 12);
+        }
+    } // end loop on nodes
+
+    Ptr<UniformRandomVariable> uniformRV = CreateObject<UniformRandomVariable>();
+    std::vector<double> sensValues = {-130.0, -132.5, -135.0, -137.5, -140.0, -142.5};
+    double succRate, newSuccRate;
+    std::vector<double> sfs;
+    bool newIt = false;
+    for (uint32_t i = 0; i < gateways.GetN(); i++)
+    {
+        Ptr<Node> gw = gateways.Get(i);
+
+        auto it = gwInfoMap.find(gw->GetId());
+
+        sfs.push_back((double) it->second.m_sf7.size());
+        sfs.push_back((double) it->second.m_sf8.size());
+        sfs.push_back((double) it->second.m_sf9.size());
+        sfs.push_back((double) it->second.m_sf10.size());
+        sfs.push_back((double) it->second.m_sf11.size());
+        sfs.push_back((double) it->second.m_sf12.size());
+        succRate = CalcSuccRate(toas, T, sfs, (double) nFreqs);
+
+        /*for (auto sf: sfs)
+        {
+            std::cout << sf << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "GW " << gw->GetId() << " - Initial Success Probability: " << succRate << "\n";*/
+
+        // 7 => 8
+        sfs[0]--;
+        sfs[1]++;
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
+        {
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+            // SF8
+            mac->SetDataRate(4);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            while (rssi > sensValues[0] && newTP >= 2)
+            {
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+            }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf8.push_back(it->second.m_sf7[index]);
+            it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+
+            sfs[0]--;
+            sfs[1]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+        }
+        // rollback
+        sfs[0]++;
+        sfs[1]--;
+
+        do
+        {
+            newIt = false;
+            // 7 => 9
+            sfs[0]--;
+            sfs[2]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs, (double) nFreqs);
+            if (newSuccRate > succRate)
+            {    
+                newIt = true;
+                succRate = newSuccRate;
+                //std::cout << "GW " << gw->GetId() << " - Success Probability[" << (++j) << "]: " << succRate << "\n";
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                mac->SetDataRate(3);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+                                                    gw->GetObject<MobilityModel>());
+                while(rssi > sensValues[1] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+                                                gw->GetObject<MobilityModel>());
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf9.push_back(it->second.m_sf7[index]);
+                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+            }
+            else
+            {
+                sfs[0]++;
+                sfs[2]--;
+            }
+
+            // 8 => 9
+            sfs[1]--;
+            sfs[2]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                //std::cout << "GW " << gw->GetId() << " - Success Probability[" << (++j) << "]: " << succRate << "\n";
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                mac->SetDataRate(3);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+                                                    gw->GetObject<MobilityModel>());
+                while(rssi > sensValues[1] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+                                                gw->GetObject<MobilityModel>());
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf9.push_back(it->second.m_sf8[index]);
+                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+            }
+            else
+            {
+                sfs[1]++;
+                sfs[2]--;
+            }
+        } while (newIt);
+
+        do
+        {
+            newIt = false;
+            // 7 => 10
+            sfs[0]--;
+            sfs[3]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                //std::cout << "GW " << gw->GetId() << " - Success Probability[" << (++j) << "]: " << succRate << "\n";
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+                mac->SetDataRate(2);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+                                                    gw->GetObject<MobilityModel>());
+                while(rssi > sensValues[2] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+                                                gw->GetObject<MobilityModel>());
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf10.push_back(it->second.m_sf7[index]);
+                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+            }
+            else
+            {
+                sfs[0]++;
+                sfs[3]--;
+            }
+
+            // 8 => 10
+            sfs[1]--;
+            sfs[3]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                //std::cout << "GW " << gw->GetId() << " - Success Probability[" << (++j) << "]: " << succRate << "\n";
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+                // SF10
+                mac->SetDataRate(2);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+
+                while (rssi > sensValues[2] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(
+                        newTP,
+                        ed->GetObject<MobilityModel>(),
+                        gw->GetObject<MobilityModel>()
+                    );
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf10.push_back(it->second.m_sf8[index]);
+                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+            }
+            else 
+            {
+                // rollback
+                sfs[1]++;
+                sfs[3]--;
+            }
+
+            // 9 => 10
+            sfs[2]--;
+            sfs[3]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                /*std::cout << "GW " << gw->GetId()
+                        << " - Success Probability[" << (++j) << "]: "
+                        << succRate << "\n";*/
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+                // SF10
+                mac->SetDataRate(2);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+
+                while (rssi > sensValues[2] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(
+                        newTP,
+                        ed->GetObject<MobilityModel>(),
+                        gw->GetObject<MobilityModel>()
+                    );
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf10.push_back(it->second.m_sf9[index]);
+                it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+            }
+            else
+            {
+                // rollback
+                sfs[2]++;
+                sfs[3]--;
+            }
+        } while (newIt);
+
+        do
+        {        
+            newIt = false;
+            // 7 => 11
+            sfs[0]--;
+            sfs[4]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                /*std::cout << "GW " << gw->GetId()
+                        << " - Success Probability[" << (++j) << "]: "
+                        << succRate << "\n";*/
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+                // SF11
+                mac->SetDataRate(1);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+
+                while (rssi > sensValues[3] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(
+                        newTP,
+                        ed->GetObject<MobilityModel>(),
+                        gw->GetObject<MobilityModel>()
+                    );
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf11.push_back(it->second.m_sf7[index]);
+                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+            }
+            else
+            {
+                // rollback
+                sfs[0]++;
+                sfs[4]--;
+            }
+
+            // 8 => 11
+            sfs[1]--;
+            sfs[4]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                /*std::cout << "GW " << gw->GetId()
+                        << " - Success Probability[" << (++j) << "]: "
+                        << succRate << "\n";*/
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+                // SF11
+                mac->SetDataRate(1);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+
+                while (rssi > sensValues[3] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(
+                        newTP,
+                        ed->GetObject<MobilityModel>(),
+                        gw->GetObject<MobilityModel>()
+                    );
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf11.push_back(it->second.m_sf8[index]);
+                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+            }
+            else
+            {
+                // rollback
+                sfs[1]++;
+                sfs[4]--;
+            }
+
+            // 9 => 11
+            sfs[2]--;
+            sfs[4]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                /*std::cout << "GW " << gw->GetId()
+                        << " - Success Probability[" << (++j) << "]: "
+                        << succRate << "\n";*/
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+                // SF11
+                mac->SetDataRate(1);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+
+                while (rssi > sensValues[3] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(
+                        newTP,
+                        ed->GetObject<MobilityModel>(),
+                        gw->GetObject<MobilityModel>()
+                    );
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf11.push_back(it->second.m_sf9[index]);
+                it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+            }
+            else
+            {
+                // rollback
+                sfs[2]++;
+                sfs[4]--;
+            }
+
+            // 10 => 11
+            sfs[3]--;
+            sfs[4]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                /*std::cout << "GW " << gw->GetId()
+                        << " - Success Probability[" << (++j) << "]: "
+                        << succRate << "\n";*/
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+                // SF11
+                mac->SetDataRate(1);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+
+                // usa sensibilidade do SF10 (antecessor mais próximo)
+                while (rssi > sensValues[3] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(
+                        newTP,
+                        ed->GetObject<MobilityModel>(),
+                        gw->GetObject<MobilityModel>()
+                    );
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf11.push_back(it->second.m_sf10[index]);
+                it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
+            } 
+            else
+            {
+                // rollback
+                sfs[3]++;
+                sfs[4]--;
+            }
+        } while (newIt);
+
+        do
+        {
+            newIt = false;
+            // 7 => 12
+            sfs[0]--;
+            sfs[5]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                /*std::cout << "GW " << gw->GetId()
+                        << " - Success Probability[" << (++j) << "]: "
+                        << succRate << "\n";*/
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+                // SF12
+                mac->SetDataRate(0);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+
+                // usa sensibilidade do SF11 (antecessor mais próximo)
+                while (rssi > sensValues[4] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(
+                        newTP,
+                        ed->GetObject<MobilityModel>(),
+                        gw->GetObject<MobilityModel>()
+                    );
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf12.push_back(it->second.m_sf7[index]);
+                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+            }
+            else
+            {
+                // rollback
+                sfs[0]++;
+                sfs[5]--;
+            }
+
+            // 8 => 12
+            sfs[1]--;
+            sfs[5]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                /*std::cout << "GW " << gw->GetId()
+                        << " - Success Probability[" << (++j) << "]: "
+                        << succRate << "\n";*/
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+                // SF12
+                mac->SetDataRate(0);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+
+                // usa sensibilidade do SF11 (antecessor mais próximo)
+                while (rssi > sensValues[4] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(
+                        newTP,
+                        ed->GetObject<MobilityModel>(),
+                        gw->GetObject<MobilityModel>()
+                    );
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf12.push_back(it->second.m_sf8[index]);
+                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+            }
+            else
+            {
+                // rollback
+                sfs[1]++;
+                sfs[5]--;
+            }
+
+            // 9 => 12
+            sfs[2]--;
+            sfs[5]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                /*std::cout << "GW " << gw->GetId()
+                        << " - Success Probability[" << (++j) << "]: "
+                        << succRate << "\n";*/
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+                // SF12
+                mac->SetDataRate(0);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+
+                // usa sensibilidade do SF11 (antecessor mais próximo)
+                while (rssi > sensValues[4] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(
+                        newTP,
+                        ed->GetObject<MobilityModel>(),
+                        gw->GetObject<MobilityModel>()
+                    );
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf12.push_back(it->second.m_sf9[index]);
+                it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+            }
+            else 
+            {
+                // rollback
+                sfs[2]++;
+                sfs[5]--;
+            }
+
+            // 10 => 12
+            sfs[3]--;
+            sfs[5]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                /*std::cout << "GW " << gw->GetId()
+                        << " - Success Probability[" << (++j) << "]: "
+                        << succRate << "\n";*/
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+                // SF12
+                mac->SetDataRate(0);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+
+                // usa sensibilidade do SF11 (antecessor mais próximo)
+                while (rssi > sensValues[4] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(
+                        newTP,
+                        ed->GetObject<MobilityModel>(),
+                        gw->GetObject<MobilityModel>()
+                    );
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf12.push_back(it->second.m_sf10[index]);
+                it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
+            }
+            else
+            {
+                // rollback
+                sfs[3]++;
+                sfs[5]--;
+            }
+
+            // 11 => 12
+            sfs[4]--;
+            sfs[5]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+            if (newSuccRate > succRate)
+            {
+                newIt = true;
+                succRate = newSuccRate;
+                /*std::cout << "GW " << gw->GetId()
+                        << " - Success Probability[" << (++j) << "]: "
+                        << succRate << "\n";*/
+
+                int index = (int) uniformRV->GetInteger(0, it->second.m_sf11.size() - 1);
+
+                Ptr<Node> ed = endDevices.Get(it->second.m_sf11[index]);
+                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+                Ptr<ClassAEndDeviceLorawanMac> mac =
+                    dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+                // SF12
+                mac->SetDataRate(0);
+
+                double newTP = 14;
+                double rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+
+                // usa sensibilidade do SF11 (antecessor mais próximo)
+                while (rssi > sensValues[4] && newTP >= 2)
+                {
+                    newTP -= 2;
+                    rssi = channel->GetRxPower(
+                        newTP,
+                        ed->GetObject<MobilityModel>(),
+                        gw->GetObject<MobilityModel>()
+                    );
+                }
+                newTP += 2;
+                mac->SetTxPower(newTP);
+
+                it->second.m_sf12.push_back(it->second.m_sf11[index]);
+                it->second.m_sf11.erase(it->second.m_sf11.begin() + index);
+            }
+            else
+            {
+                // rollback
+                sfs[4]++;
+                sfs[5]--;
+            }
+        } while (newIt);
+
+        /*for (auto sf: sfs)
+        {
+            std::cout << sf << " ";
+        }
+        std::cout << std::endl;*/
+        
+        sfs.clear();
+    }
+
+    // Clear Data
+    sfs.clear();
+    toas.clear();
+    sensValues.clear();
+
+    for (auto it: gwInfoMap)
+    {
+        it.second.Clear();
+    }
+    gwInfoMap.clear();
+
+    std::cout << "SFTPA3\n";
+
+    // Returning
+    return sfQuantity;
+}
 
 // Thiago Allisson
 std::vector<int> CopyVector(std::vector<int> from)
