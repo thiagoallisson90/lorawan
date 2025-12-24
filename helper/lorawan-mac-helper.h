@@ -247,8 +247,7 @@ class LorawanMacHelper
                                    std::vector<double> toas,
                                    int nFreqs=3,
                                    bool useGwSens=true, 
-                                   double T=600,
-                                   double pSucc=0.99);                                        
+                                   double T=600);                                        
 
     // Thiago Allisson: SFTPA+ (SF and TP Allocation+)
     static std::vector<int> SFTPAp(NodeContainer endDevices,

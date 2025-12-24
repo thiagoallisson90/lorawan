@@ -5625,6 +5625,23 @@ LorawanMacHelper::SFTPA1(NodeContainer endDevices,
     return sfQuantity;
 }
 
+double
+CalcSuccRate(std::vector<double> toas, 
+             double t, 
+             std::vector<double> sfQuantity, 
+             double nFreqs=3.0)
+{
+    double succRate = 0.0;
+    double nPkts = 3600 / t;
+
+    for (size_t i = 0; i < toas.size(); i++)
+    {
+        succRate += sfQuantity[i] * nPkts * SuccProb(toas[i], t, sfQuantity[i] / nFreqs);
+    }
+
+    return succRate;
+}
+
 
 std::vector<int> 
 LorawanMacHelper::SFTPA2(NodeContainer endDevices,
@@ -5633,8 +5650,7 @@ LorawanMacHelper::SFTPA2(NodeContainer endDevices,
                          std::vector<double> toas,
                          int nFreqs,
                          bool useGwSens, 
-                         double T,
-                         double pSucc)
+                         double T)
 {
     NS_LOG_FUNCTION_NOARGS();
 
@@ -5748,499 +5764,797 @@ LorawanMacHelper::SFTPA2(NodeContainer endDevices,
         }
     } // end loop on nodes
 
-    // std::vector<double> toas = {0.112896, 0.205312, 0.369664, 0.698368, 1.47866, 2.62963};
-    // int t = 600;
-    // double succ = 0.99;
-    // int nFreqs = 3;
-
-    int nSF7 = NumMaxOfNodesPerSF(toas[0], T, pSucc, nFreqs);
-    int nSF8 = NumMaxOfNodesPerSF(toas[1], T, pSucc, nFreqs);
-    int nSF9 = NumMaxOfNodesPerSF(toas[2], T, pSucc, nFreqs);
-    int nSF10 = NumMaxOfNodesPerSF(toas[3], T, pSucc, nFreqs);
-    int nSF11 = NumMaxOfNodesPerSF(toas[4], T, pSucc, nFreqs);
-    int nSF12 = NumMaxOfNodesPerSF(toas[5], T, pSucc, nFreqs);
-
     Ptr<UniformRandomVariable> uniformRV = CreateObject<UniformRandomVariable>();
     std::vector<double> sensValues = {-130.0, -132.5, -135.0, -137.5, -140.0, -142.5};
-    double rxMargin = 0.5;
+    double succRate, newSuccRate;
+    std::vector<double> sfs;
     for (uint32_t i = 0; i < gateways.GetN(); i++)
     {
         Ptr<Node> gw = gateways.Get(i);
 
         auto it = gwInfoMap.find(gw->GetId());
-        
+
+        sfs.push_back((double) it->second.m_sf7.size());
+        sfs.push_back((double) it->second.m_sf8.size());
+        sfs.push_back((double) it->second.m_sf9.size());
+        sfs.push_back((double) it->second.m_sf10.size());
+        sfs.push_back((double) it->second.m_sf11.size());
+        sfs.push_back((double) it->second.m_sf12.size());
+        succRate = CalcSuccRate(toas, T, sfs, (double) nFreqs);
+
+        /*for (auto sf: sfs)
+        {
+            std::cout << sf << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "GW " << gw->GetId() << " - Initial Success Probability: " << succRate << "\n";*/
+
         // 7 => 8
-        while ((int) it->second.m_sf8.size() < nSF8)
+        sfs[0]--;
+        sfs[1]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
         {
-            if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf8.size() < nSF8)
-            {               
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(4);
-                
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[0] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
 
-                it->second.m_sf8.push_back(it->second.m_sf7[index]);
-                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
-            }
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
 
-            if ((int) it->second.m_sf7.size() <= nSF7)
+            // SF8
+            mac->SetDataRate(4);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            while (rssi > sensValues[0] && newTP >= 2)
             {
-                break;
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
             }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf8.push_back(it->second.m_sf7[index]);
+            it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+
+            sfs[0]--;
+            sfs[1]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
         }
 
-        // {7, 8} => 9
-        while ((int) it->second.m_sf9.size() < nSF9)
+        // rollback
+        sfs[0]++;
+        sfs[1]--;
+
+        // 7 => 9
+        sfs[0]--;
+        sfs[2]++;
+        newSuccRate = CalcSuccRate(toas, T, sfs, (double) nFreqs);
+        while (newSuccRate > succRate)
+        {    
+            succRate =  newSuccRate;
+            //std::cout << "GW " << gw->GetId() << " - Success Probability[" << (++j) << "]: " << succRate << "\n";
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+            mac->SetDataRate(3);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+                                                gw->GetObject<MobilityModel>());
+            while(rssi > sensValues[1] && newTP >= 2)
+            {
+                newTP -= 2;
+                rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+                                            gw->GetObject<MobilityModel>());
+            }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf9.push_back(it->second.m_sf7[index]);
+            it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+
+            sfs[0]--;
+            sfs[2]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs, (double) nFreqs);
+        }
+        sfs[0]++;
+        sfs[2]--;
+
+        // 8 => 9
+        sfs[1]--;
+        sfs[2]++;
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
         {
-            if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf9.size() < nSF9)
-            {    
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+            succRate =  newSuccRate;
+            //std::cout << "GW " << gw->GetId() << " - Success Probability[" << (++j) << "]: " << succRate << "\n";
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(3);
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
 
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[1] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+            mac->SetDataRate(3);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                 gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf9.push_back(it->second.m_sf7[index]);
-                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
-            }
-
-            if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf9.size() < nSF9)
+            while(rssi > sensValues[1] && newTP >= 2)
             {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+                newTP -= 2;
+                rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+                                            gw->GetObject<MobilityModel>());
+            }
+            newTP += 2;
+            mac->SetTxPower(newTP);
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(3);
+            it->second.m_sf9.push_back(it->second.m_sf8[index]);
+            it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+            
+            sfs[1]--;
+            sfs[2]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+        }
+        sfs[1]++;
+        sfs[2]--;
 
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[1] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+        // 7 => 10
+        sfs[0]--;
+        sfs[3]++;
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
+        {
+            succRate =  newSuccRate;
+            //std::cout << "GW " << gw->GetId() << " - Success Probability[" << (++j) << "]: " << succRate << "\n";
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+            mac->SetDataRate(2);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
                                                 gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf9.push_back(it->second.m_sf8[index]);
-                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
-            }
-
-            if ((int) it->second.m_sf7.size() <= nSF7 && (int) it->second.m_sf8.size() <= nSF8)
+            while(rssi > sensValues[2] && newTP >= 2)
             {
-                break;
+                newTP -= 2;
+                rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
+                                            gw->GetObject<MobilityModel>());
             }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf10.push_back(it->second.m_sf7[index]);
+            it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+
+            sfs[0]--;
+            sfs[3]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+        }
+        sfs[0]++;
+        sfs[3]--;
+
+        // 8 => 10
+        sfs[1]--;
+        sfs[3]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
+        {
+            succRate = newSuccRate;
+            //std::cout << "GW " << gw->GetId() << " - Success Probability[" << (++j) << "]: " << succRate << "\n";
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+            // SF10
+            mac->SetDataRate(2);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            while (rssi > sensValues[2] && newTP >= 2)
+            {
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+            }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf10.push_back(it->second.m_sf8[index]);
+            it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+
+            sfs[1]--;
+            sfs[3]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+        }
+        // rollback
+        sfs[1]++;
+        sfs[3]--;
+
+        // 9 => 10
+        sfs[2]--;
+        sfs[3]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
+        {
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+            // SF10
+            mac->SetDataRate(2);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            while (rssi > sensValues[2] && newTP >= 2)
+            {
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+            }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf10.push_back(it->second.m_sf9[index]);
+            it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+
+            sfs[2]--;
+            sfs[3]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
         }
 
-        // {7, 8, 9} => 10
-        while ((int) it->second.m_sf10.size() < nSF10)
+        // rollback
+        sfs[2]++;
+        sfs[3]--;
+
+        // 7 => 11
+        sfs[0]--;
+        sfs[4]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
         {
-            if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf10.size() < nSF10)
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+            // SF11
+            mac->SetDataRate(1);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            while (rssi > sensValues[3] && newTP >= 2)
             {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
-
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(2);
-
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[2] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf10.push_back(it->second.m_sf7[index]);
-                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
             }
+            newTP += 2;
+            mac->SetTxPower(newTP);
 
-            if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf10.size() < nSF10)
-            {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+            it->second.m_sf11.push_back(it->second.m_sf7[index]);
+            it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(2);
-
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[2] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf10.push_back(it->second.m_sf8[index]);
-                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
-            }
-
-            if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf10.size() < nSF10)
-            {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
-
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(2);
-
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[2] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf10.push_back(it->second.m_sf9[index]);
-                it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
-            }
-
-            if ((int) it->second.m_sf7.size() <= nSF7 && (int) it->second.m_sf8.size() <= nSF8 
-                    && (int) it->second.m_sf9.size() <= nSF9)
-            {
-                break;
-            }
+            sfs[0]--;
+            sfs[4]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
         }
 
-        // {7, 8, 9, 10} => 11
-        while ((int) it->second.m_sf11.size() < nSF11)
+        // rollback
+        sfs[0]++;
+        sfs[4]--;
+
+        // 8 => 11
+        sfs[1]--;
+        sfs[4]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
         {
-            if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf11.size() < nSF11)
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+            // SF11
+            mac->SetDataRate(1);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            while (rssi > sensValues[3] && newTP >= 2)
             {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
-
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(1);
-
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[3] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf11.push_back(it->second.m_sf7[index]);
-                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
             }
+            newTP += 2;
+            mac->SetTxPower(newTP);
 
-            if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf11.size() < nSF11)
-            {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+            it->second.m_sf11.push_back(it->second.m_sf8[index]);
+            it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(1);
-
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[3] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-                
-                it->second.m_sf11.push_back(it->second.m_sf8[index]);
-                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
-            }
-
-            if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf11.size() < nSF11)
-            {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
-
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(1);
-
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[3] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf11.push_back(it->second.m_sf9[index]);
-                it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
-            }
-
-            if ((int) it->second.m_sf10.size() > nSF10 && (int) it->second.m_sf11.size() < nSF11)
-            {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size() - 1);
-
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(1);
-
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[3] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf11.push_back(it->second.m_sf10[index]);
-                it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
-            }
-
-            if ((int) it->second.m_sf7.size() <= nSF7 && (int) it->second.m_sf8.size() <= nSF8 
-                && (int) it->second.m_sf9.size() <= nSF9 && (int) it->second.m_sf10.size() <= nSF10)
-            {
-                break;
-            }
+            sfs[1]--;
+            sfs[4]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
         }
 
-        // {7, 8, 9, 10, 11} => 12
-        while ((int) it->second.m_sf12.size() < nSF12)
+        // rollback
+        sfs[1]++;
+        sfs[4]--;
+
+        // 9 => 11
+        sfs[2]--;
+        sfs[4]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
         {
-            if ((int) it->second.m_sf7.size() > nSF7 && (int) it->second.m_sf12.size() < nSF12)
-            {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(0);
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
 
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[4] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
 
-                it->second.m_sf12.push_back(it->second.m_sf7[index]);
-                it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
-            }
+            // SF11
+            mac->SetDataRate(1);
 
-            if ((int) it->second.m_sf8.size() > nSF8 && (int) it->second.m_sf12.size() < nSF12)
-            {    
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
 
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(0);
-
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[4] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf12.push_back(it->second.m_sf8[index]);
-                it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
-            }
-
-            if ((int) it->second.m_sf9.size() > nSF9 && (int) it->second.m_sf12.size() < nSF12)
-            {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
-
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(0);
-
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[4] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf12.push_back(it->second.m_sf9[index]);
-                it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
-            }
-
-            if ((int) it->second.m_sf10.size() > nSF10 && (int) it->second.m_sf12.size() < nSF12)
-            {                
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size() - 1);
-
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(0);
-
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[4] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf12.push_back(it->second.m_sf10[index]);
-                it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
-            }
-
-            if ((int) it->second.m_sf11.size() > nSF11 && (int) it->second.m_sf12.size() < nSF12)
+            while (rssi > sensValues[3] && newTP >= 2)
             {
-                int index = (int) uniformRV->GetInteger(0, it->second.m_sf11.size() - 1);
-
-                Ptr<Node> ed = endDevices.Get(it->second.m_sf11[index]);
-                Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
-                Ptr<ClassAEndDeviceLorawanMac> mac = dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
-                mac->SetDataRate(0);
-
-                double newTP = 14;
-                double rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                    gw->GetObject<MobilityModel>());
-                while((rssi - rxMargin) > sensValues[4] && newTP >= 2)
-                {
-                    newTP -= 2;
-                    rssi = channel->GetRxPower(newTP, ed->GetObject<MobilityModel>(), 
-                                                gw->GetObject<MobilityModel>());
-                }
-                if (newTP < 14)
-                {
-                    newTP += 2;
-                }
-                mac->SetTxPower(newTP);
-
-                it->second.m_sf12.push_back(it->second.m_sf11[index]);
-                it->second.m_sf11.erase(it->second.m_sf11.begin() + index);
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
             }
+            newTP += 2;
+            mac->SetTxPower(newTP);
 
-            if ((int) it->second.m_sf7.size() <= nSF7 && (int) it->second.m_sf8.size() <= nSF8 
-                && (int) it->second.m_sf9.size() <= nSF9 && (int) it->second.m_sf10.size() <= nSF10
-                && (int) it->second.m_sf11.size() <= nSF11)
-            {
-                break;
-            }
+            it->second.m_sf11.push_back(it->second.m_sf9[index]);
+            it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+
+            sfs[2]--;
+            sfs[4]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
         }
+
+        // rollback
+        sfs[2]++;
+        sfs[4]--;
+
+        // 10 => 11
+        sfs[3]--;
+        sfs[4]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
+        {
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+            // SF11
+            mac->SetDataRate(1);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            // usa sensibilidade do SF10 (antecessor mais próximo)
+            while (rssi > sensValues[3] && newTP >= 2)
+            {
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+            }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf11.push_back(it->second.m_sf10[index]);
+            it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
+
+            sfs[3]--;
+            sfs[4]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+        }
+
+        // rollback
+        sfs[3]++;
+        sfs[4]--;
+
+        // 7 => 12
+        sfs[0]--;
+        sfs[5]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
+        {
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf7.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf7[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+            // SF12
+            mac->SetDataRate(0);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            // usa sensibilidade do SF11 (antecessor mais próximo)
+            while (rssi > sensValues[4] && newTP >= 2)
+            {
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+            }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf12.push_back(it->second.m_sf7[index]);
+            it->second.m_sf7.erase(it->second.m_sf7.begin() + index);
+
+            sfs[0]--;
+            sfs[5]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+        }
+
+        // rollback
+        sfs[0]++;
+        sfs[5]--;
+
+        // 8 => 12
+        sfs[1]--;
+        sfs[5]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
+        {
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf8.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf8[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+            // SF12
+            mac->SetDataRate(0);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            // usa sensibilidade do SF11 (antecessor mais próximo)
+            while (rssi > sensValues[4] && newTP >= 2)
+            {
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+            }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf12.push_back(it->second.m_sf8[index]);
+            it->second.m_sf8.erase(it->second.m_sf8.begin() + index);
+
+            sfs[1]--;
+            sfs[5]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+        }
+
+        // rollback
+        sfs[1]++;
+        sfs[5]--;
+
+        // 9 => 12
+        sfs[2]--;
+        sfs[5]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
+        {
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf9.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf9[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+            // SF12
+            mac->SetDataRate(0);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            // usa sensibilidade do SF11 (antecessor mais próximo)
+            while (rssi > sensValues[4] && newTP >= 2)
+            {
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+            }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf12.push_back(it->second.m_sf9[index]);
+            it->second.m_sf9.erase(it->second.m_sf9.begin() + index);
+
+            sfs[2]--;
+            sfs[5]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+        }
+
+        // rollback
+        sfs[2]++;
+        sfs[5]--;
+
+        // 10 => 12
+        sfs[3]--;
+        sfs[5]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
+        {
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf10.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf10[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+            // SF12
+            mac->SetDataRate(0);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            // usa sensibilidade do SF11 (antecessor mais próximo)
+            while (rssi > sensValues[4] && newTP >= 2)
+            {
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+            }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf12.push_back(it->second.m_sf10[index]);
+            it->second.m_sf10.erase(it->second.m_sf10.begin() + index);
+
+            sfs[3]--;
+            sfs[5]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+        }
+
+        // rollback
+        sfs[3]++;
+        sfs[5]--;
+
+        // 11 => 12
+        sfs[4]--;
+        sfs[5]++;
+
+        newSuccRate = CalcSuccRate(toas, T, sfs);
+        while (newSuccRate > succRate)
+        {
+            succRate = newSuccRate;
+            /*std::cout << "GW " << gw->GetId()
+                    << " - Success Probability[" << (++j) << "]: "
+                    << succRate << "\n";*/
+
+            int index = (int) uniformRV->GetInteger(0, it->second.m_sf11.size() - 1);
+
+            Ptr<Node> ed = endDevices.Get(it->second.m_sf11[index]);
+            Ptr<LoraNetDevice> dev = ed->GetDevice(0)->GetObject<LoraNetDevice>();
+            Ptr<ClassAEndDeviceLorawanMac> mac =
+                dev->GetMac()->GetObject<ClassAEndDeviceLorawanMac>();
+
+            // SF12
+            mac->SetDataRate(0);
+
+            double newTP = 14;
+            double rssi = channel->GetRxPower(
+                newTP,
+                ed->GetObject<MobilityModel>(),
+                gw->GetObject<MobilityModel>()
+            );
+
+            // usa sensibilidade do SF11 (antecessor mais próximo)
+            while (rssi > sensValues[4] && newTP >= 2)
+            {
+                newTP -= 2;
+                rssi = channel->GetRxPower(
+                    newTP,
+                    ed->GetObject<MobilityModel>(),
+                    gw->GetObject<MobilityModel>()
+                );
+            }
+            newTP += 2;
+            mac->SetTxPower(newTP);
+
+            it->second.m_sf12.push_back(it->second.m_sf11[index]);
+            it->second.m_sf11.erase(it->second.m_sf11.begin() + index);
+
+            sfs[4]--;
+            sfs[5]++;
+            newSuccRate = CalcSuccRate(toas, T, sfs);
+        }
+
+        // rollback
+        sfs[4]++;
+        sfs[5]--;
+
+        /*for (auto sf: sfs)
+        {
+            std::cout << sf << " ";
+        }
+        std::cout << std::endl;*/
+        
+        sfs.clear();
     }
 
     // Clear Data
+    sfs.clear();
     toas.clear();
+    sensValues.clear();
 
     for (auto it: gwInfoMap)
     {
@@ -6252,25 +6566,6 @@ LorawanMacHelper::SFTPA2(NodeContainer endDevices,
 
     // Returning
     return sfQuantity;
-}
-
-
-// Thiago Allisson
-double CalcSuccRate(const std::vector<double>& toas,
-                    double t,
-                    const std::vector<int>& Ns)
-{
-    double rate = 0.0;
-
-    for (size_t i = 0; i < toas.size(); ++i)
-    {
-        if (Ns[i] > 0)
-        {
-            rate += Ns[i] * (3600.0 / t) * SuccProb(toas[i], t, 1.0 * Ns[i] / 3.0);
-        }
-    }
-
-    return rate;
 }
 
 
