@@ -359,17 +359,7 @@ public:
 protected:
   void AdrImplementation(uint8_t* newDataRate,
                          uint8_t* newTxPower,
-                         Ptr<EndDeviceStatus> status) override;
-  
-  /* Whether to use success probability or not. 
-   * If false, a deterministic approach is used (SSFIR-ADR1),
-   * else a probabilistic approach is used (SSFIR-ADR2).                        
-   */
-  bool m_useProb;     
-  /* The probability that will control the decrease in SF 
-   * at region K, used only if m_useProb is true SSFIR-ADR2.                        
-   */
-  double m_rho;       
+                         Ptr<EndDeviceStatus> status) override;       
 };
 
 } // namespace lorawan

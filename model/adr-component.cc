@@ -1490,24 +1490,13 @@ SSFIR::GetTypeId()
         TypeId("ns3::SSFIR")
             .SetGroupName("lorawan")
             .AddConstructor<SSFIR>()
-            .SetParent<AdrComponent>()
-            .AddAttribute("UseProb",
-                          "Flag to use success probability or not",
-                          BooleanValue(false),
-                          MakeBooleanAccessor(&SSFIR::m_useProb),
-                          MakeBooleanChecker())
-            .AddAttribute("Rho",
-                          "The probability that will control the decrease in SF",
-                          DoubleValue(0.5),
-                          MakeDoubleAccessor(&SSFIR::m_rho),
-                          MakeDoubleChecker<double>(0.0, 1.0));
+            .SetParent<AdrComponent>();
 
     return tid;
 }
 
 SSFIR::SSFIR()
 {
-    historyRange = 4;
 }
 
 SSFIR::~SSFIR()
@@ -1519,12 +1508,9 @@ SSFIR::AdrImplementation(uint8_t* newDataRate,
                          uint8_t* newTxPower,
                          Ptr<EndDeviceStatus> status)
 {
-    std::cout << "HR = " << historyRange << ", " << "Margin = " << m_margin 
-              << " dB." << std::endl;
     // Compute the average SNR
     double m_SNR = GetAverageSNR(status->GetReceivedPacketList(), historyRange);
 
-    // std::cout << "HAvg = " << historyAveraging << ", margin = " << m_margin << std::endl;
     NS_LOG_DEBUG("m_SNR = " << m_SNR);
 
     // Get the spreading factor used by the device
@@ -1575,63 +1561,23 @@ SSFIR::AdrImplementation(uint8_t* newDataRate,
         steps--;
         NS_LOG_DEBUG("Decreased Ptx by 2");
     }
-    while (steps < 0 && transmissionPower < max_transmissionPower)
+    /*while (steps < 0 && transmissionPower < max_transmissionPower)
     {
         transmissionPower += 2;
         steps++;
         NS_LOG_DEBUG("Increased Ptx by 2");
-    }
+    }*/
 
-    Ptr<RandomVariableStream> rv;
-    if (m_useProb)
+    uint8_t newSF = 11; // newSF = maxSF - 1 => maxSF = 12
+    while (m_SNR > threshold[SfToDr(newSF)] && newSF >= min_spreadingFactor)
     {
-        rv = CreateObjectWithAttributes<UniformRandomVariable>("Min",
-                                        DoubleValue(0),
-                                        "Max",
-                                        DoubleValue(1));
-    }
+        newSF--;
+    }    
+    newSF++;
 
-    uint8_t newSF = spreadingFactor;
-    uint8_t useSF = newSF;
-    if (spreadingFactor > 7)
-    {
-        while (newSF > 7)
-        {
-            double req_SNRAux = threshold[SfToDr(newSF - 1)];
-
-            if (!m_useProb)
-            {
-                if (m_SNR > req_SNRAux)
-                {
-                    newSF--;
-                }
-                else
-                {
-                    break;
-                }
-            }
-            else
-            {                
-                if (m_SNR > req_SNRAux)
-                {
-                    newSF--;
-                    double change = rv->GetValue();
-                    if (change > m_rho)
-                    {
-                        useSF = newSF;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-        if (m_useProb)
-        {
-            newSF = useSF;
-        }
-    }
+    /*std::cout << "SF = " << unsigned(newSF) << ", TP = " << unsigned(transmissionPower) << " dBm"
+              << ", m_SNR = " << m_SNR << "dB, HistoryRange = " << historyRange 
+              << ", Threshold = " << threshold[SfToDr(newSF)] << " dBm" << std::endl;*/
 
     *newDataRate = SfToDr(newSF);
     *newTxPower = transmissionPower;
