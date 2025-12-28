@@ -1583,5 +1583,126 @@ SSFIR::AdrImplementation(uint8_t* newDataRate,
     *newTxPower = transmissionPower;
 }
 
+// SSFIR2
+NS_OBJECT_ENSURE_REGISTERED(SSFIR2);
+
+TypeId
+SSFIR2::GetTypeId()
+{
+    static TypeId tid =
+        TypeId("ns3::SSFIR2")
+            .SetGroupName("lorawan")
+            .AddConstructor<SSFIR2>()
+            .SetParent<AdrComponent>()
+            .AddAttribute("RhoSF",
+                          "Probability for Change SF",
+                          DoubleValue(0.5),
+                          MakeDoubleAccessor(&SSFIR2::m_rhoSF),
+                          MakeDoubleChecker<double>(0.01, 0.95));
+
+    return tid;
+}
+
+SSFIR2::SSFIR2()
+{
+}
+
+SSFIR2::~SSFIR2()
+{
+}
+
+void
+SSFIR2::AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status)
+{
+    // Compute the average SNR
+    double m_SNR = GetAverageSNR(status->GetReceivedPacketList(), historyRange);
+
+    NS_LOG_DEBUG("m_SNR = " << m_SNR);
+
+    // Get the spreading factor used by the device
+    uint8_t spreadingFactor = status->GetFirstReceiveWindowSpreadingFactor();
+
+    NS_LOG_DEBUG("SF = " << (unsigned)spreadingFactor);
+
+    // Get the device data rate and use it to get the SNR demodulation threshold
+    double req_SNR = threshold[SfToDr(spreadingFactor)];
+
+    NS_LOG_DEBUG("Required SNR = " << req_SNR);
+
+    // Get the device transmission power (dBm)
+    double transmissionPower = status->GetMac()->GetTransmissionPower();
+
+    NS_LOG_DEBUG("Transmission Power = " << transmissionPower);
+
+    // Compute the SNR margin taking into consideration the SNR of
+    // previously received packets
+    double margin_SNR = m_SNR - req_SNR - m_margin;
+
+    NS_LOG_DEBUG("Margin = " << margin_SNR);
+
+    // Number of steps to decrement the spreading factor (thereby increasing the data rate)
+    // and the TP.
+    int steps = std::floor(margin_SNR / 3);
+
+    NS_LOG_DEBUG("steps = " << steps);
+
+    // If the number of steps is positive (margin_SNR is positive, so its
+    // decimal value is high) increment the data rate, if there are some
+    // leftover steps after reaching the maximum possible data rate
+    //(corresponding to the minimum spreading factor) decrement the transmission power as
+    // well for the number of steps left.
+    // If, on the other hand, the number of steps is negative (margin_SNR is
+    // negative, so its decimal value is low) increase the transmission power
+    //(note that the spreading factor is not incremented as this particular algorithm
+    // expects the node itself to raise its spreading factor whenever necessary).
+    while (steps > 0 && spreadingFactor > min_spreadingFactor)
+    {
+        spreadingFactor--;
+        steps--;
+        NS_LOG_DEBUG("Decreased SF by 1");
+    }
+    while (steps > 0 && transmissionPower > min_transmissionPower)
+    {
+        transmissionPower -= 2;
+        steps--;
+        NS_LOG_DEBUG("Decreased Ptx by 2");
+    }
+    /*while (steps < 0 && transmissionPower < max_transmissionPower)
+    {
+        transmissionPower += 2;
+        steps++;
+        NS_LOG_DEBUG("Increased Ptx by 2");
+    }*/
+
+    Ptr<RandomVariableStream> rv = CreateObjectWithAttributes<UniformRandomVariable>(
+                                        "Min",
+                                        DoubleValue(0.0),
+                                        "Max",
+                                        DoubleValue(1.0)
+    );
+
+    double rho;
+    uint8_t newSF = 12; // newSF = maxSF => maxSF = 12
+    uint8_t sf = newSF - 1; // sf = newSF - 1 => 11
+    while (m_SNR > threshold[SfToDr(sf)] && sf >= min_spreadingFactor)
+    {
+        rho = rv->GetValue();
+        if (rho > m_rhoSF)
+        {
+            newSF = sf;
+        }
+        sf--;
+    }
+
+    /*std::cout << "SF = " << unsigned(newSF) << ", TP = " << unsigned(transmissionPower) << " dBm"
+              << ", m_SNR = " << m_SNR << "dB, HistoryRange = " << historyRange << ", rhoSF = " << m_rhoSF
+              << ", Threshold = " << threshold[SfToDr(newSF)] << " dBm" << std::endl;*/
+
+    *newDataRate = SfToDr(newSF);
+    *newTxPower = transmissionPower;
+}
+
 } // namespace lorawan
 } // namespace ns3

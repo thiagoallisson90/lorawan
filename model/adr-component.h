@@ -362,6 +362,22 @@ protected:
                          Ptr<EndDeviceStatus> status) override;       
 };
 
+class SSFIR2 : public AdrComponent
+{
+public:
+  static TypeId GetTypeId();
+
+  SSFIR2();           //!< Default constructor
+  ~SSFIR2();          //!< Destructor
+
+protected:
+  void AdrImplementation(uint8_t* newDataRate,
+                         uint8_t* newTxPower,
+                         Ptr<EndDeviceStatus> status) override;       
+  
+  double m_rhoSF;
+};
+
 } // namespace lorawan
 } // namespace ns3
 
